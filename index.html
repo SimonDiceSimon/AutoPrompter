@@ -1,0 +1,1268 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-950 text-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teleprompter Pro Studio con Repertorio y Reconocimiento de Voz</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0f9ff',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              700: '#0369a1',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Ocultar barra de desplazamiento manteniendo la funcionalidad */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    /* Transformaciones de Espejo */
+    .flip-x {
+      transform: scaleX(-1);
+    }
+    .flip-y {
+      transform: scaleY(-1);
+    }
+    .flip-both {
+      transform: scale(-1, -1);
+    }
+
+    /* Transición suave para guías */
+    .reading-glow {
+      box-shadow: 0 0 30px rgba(37, 99, 235, 0.3);
+    }
+
+    /* Estilos dinámicos de las palabras con tamaño y peso 100% estables */
+    .prompter-word {
+      font-weight: inherit;
+      font-size: inherit;
+      letter-spacing: inherit;
+      transform: none !important;
+      transition: color 0.12s ease, opacity 0.12s ease;
+    }
+
+    /* 1. Texto que está por venir (Aún no leído): Blanco nítido */
+    .word-upcoming {
+      color: #ffffff !important;
+      opacity: 0.95;
+      text-shadow: none;
+    }
+
+    /* 2. Palabra activa (la que estás diciendo o cantando): Azul iluminado en foco */
+    .word-active {
+      color: #3b82f6 !important;
+      opacity: 1;
+      text-shadow: 0 0 14px rgba(59, 130, 246, 0.85);
+    }
+
+    /* 3. Texto que ya pasó (ya leído): Azul consolidado */
+    .word-passed {
+      color: #2563eb !important;
+      opacity: 0.75;
+      text-shadow: none;
+    }
+  </style>
+</head>
+<body class="h-full flex flex-col select-none overflow-hidden font-sans bg-black">
+
+  <!-- ================= BARRA DE CONTROL SUPERIOR ================= -->
+  <header id="main-header" class="bg-slate-900/95 backdrop-blur border-b border-slate-800 z-50 transition-all duration-300">
+    <div class="max-w-7xl mx-auto px-4 py-2 flex flex-wrap items-center justify-between gap-2.5 text-xs sm:text-sm">
+      
+      <!-- Controles de Reproducción y Estado -->
+      <div class="flex items-center gap-2">
+        <div class="flex items-center gap-1.5 font-bold tracking-wider text-slate-100 uppercase mr-1">
+          <div id="recording-badge" class="w-2.5 h-2.5 rounded-full bg-slate-500"></div>
+          <span class="hidden md:inline bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent font-black">Studio</span>
+        </div>
+
+        <button id="btn-toggle-play" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold transition active:scale-95 shadow-md shadow-blue-950/50">
+          <svg id="play-icon" class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          <svg id="pause-icon" class="w-4 h-4 fill-current hidden" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+          <span id="play-label">Iniciar</span>
+        </button>
+
+        <button id="btn-rewind" title="Rebobinar al inicio del tema (R)" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition active:scale-95 border border-slate-700">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        </button>
+      </div>
+
+      <!-- Selector Rápido de Setlist / Playlist en Vivo -->
+      <div class="flex items-center gap-1 bg-slate-800/90 px-2 py-1 rounded-lg border border-slate-700/80">
+        <button id="btn-prev-song" title="Tema Anterior (Tecla [ o P)" class="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-700 transition">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        </button>
+
+        <select id="select-active-song" class="bg-slate-900 text-slate-200 text-xs font-semibold px-2 py-1 rounded border border-slate-700 focus:outline-none focus:border-blue-500 max-w-[140px] sm:max-w-[210px] truncate cursor-pointer">
+          <!-- Opciones de canciones inyectadas dinámicamente -->
+        </select>
+
+        <button id="btn-next-song" title="Tema Siguiente (Tecla ] o N)" class="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-700 transition">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        </button>
+
+        <button id="btn-open-setlist" title="Gestionar Repertorio Completo" class="ml-1 flex items-center gap-1 px-2 py-1 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs transition">
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+          <span class="hidden sm:inline">Repertorio</span>
+        </button>
+      </div>
+
+      <!-- Modo de Seguimiento por Voz y Velocidad -->
+      <div class="flex items-center flex-wrap gap-2 sm:gap-3">
+        <!-- Modo Voz -->
+        <button id="btn-toggle-voice" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-white border border-blue-400/40 font-semibold shadow-md shadow-blue-950/50 transition active:scale-95 text-xs">
+          <span id="mic-icon-wrapper" class="relative flex h-2.5 w-2.5">
+            <span id="mic-ping" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-300 opacity-75"></span>
+            <span id="mic-dot" class="relative inline-flex rounded-full h-2.5 w-2.5 bg-white"></span>
+          </span>
+          <span id="voice-mode-label">Voz: ACTIVA</span>
+        </button>
+
+        <!-- Velocidad (Para modo continuo) -->
+        <div id="speed-box" class="flex items-center gap-1 bg-slate-800/80 px-2 py-1 rounded-lg border border-slate-700/60 text-xs">
+          <span class="text-slate-400">Vel:</span>
+          <button id="btn-speed-down" class="w-5 h-5 flex items-center justify-center rounded bg-slate-700 hover:bg-slate-600 text-white font-bold">-</button>
+          <input type="range" id="speed-slider" min="0.5" max="10" step="0.2" value="2.4" class="w-12 sm:w-16 accent-blue-500 cursor-pointer">
+          <button id="btn-speed-up" class="w-5 h-5 flex items-center justify-center rounded bg-slate-700 hover:bg-slate-600 text-white font-bold">+</button>
+          <span id="speed-indicator" class="w-7 font-mono text-right text-blue-400 font-bold">2.4x</span>
+        </div>
+
+        <!-- Tamaño de fuente -->
+        <div class="flex items-center gap-1.5 bg-slate-800/80 px-2 py-1 rounded-lg border border-slate-700/60 text-xs">
+          <span class="text-slate-400">Aa</span>
+          <input type="range" id="font-slider" min="26" max="80" step="2" value="44" class="w-12 sm:w-16 accent-blue-500 cursor-pointer">
+          <span id="font-indicator" class="w-7 font-mono text-right text-slate-300">44</span>
+        </div>
+      </div>
+
+      <!-- Herramientas Extras (Espejo, Webcam, Fullscreen) -->
+      <div class="flex items-center gap-1.5">
+        <button id="btn-mirror-h" title="Invertir Horizontal (M)" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-mono text-xs transition">
+          ↔ H
+        </button>
+        <button id="btn-mirror-v" title="Invertir Vertical" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-mono text-xs transition">
+          ↕ V
+        </button>
+        <button id="btn-webcam" title="Cámara de Referencia" class="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+        </button>
+        <button id="btn-fullscreen" title="Pantalla Completa (F)" class="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0 0l-5-5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Barra de progreso continua superior -->
+    <div class="w-full bg-slate-800 h-1">
+      <div id="progress-bar" class="bg-gradient-to-r from-blue-500 via-sky-400 to-indigo-500 h-full w-0 transition-all duration-150"></div>
+    </div>
+  </header>
+
+  <!-- ================= CUERPO PRINCIPAL / ÁREA DE LECTURA ================= -->
+  <main class="relative flex-1 bg-black overflow-hidden flex flex-col justify-center">
+
+    <!-- BANNER AUTO-CUE: Tema siguiente armado y en espera -->
+    <div id="autocue-banner" class="absolute top-4 left-1/2 -translate-x-1/2 z-40 bg-indigo-950/90 border border-indigo-500/80 text-white px-5 py-2.5 rounded-2xl shadow-2xl backdrop-blur-md flex items-center gap-3 transition-all duration-300 opacity-0 -translate-y-4 pointer-events-none">
+      <span class="flex h-3 w-3 relative">
+        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+        <span class="relative inline-flex rounded-full h-3 w-3 bg-indigo-500"></span>
+      </span>
+      <div class="text-xs">
+        <span class="text-indigo-300 font-bold uppercase tracking-wider">Listo / Armado:</span>
+        <span id="autocue-song-title" class="font-bold text-white ml-1 font-mono">Nombre de la Canción</span>
+        <span class="text-slate-300 ml-2 hidden sm:inline">• Presiona <kbd class="px-1.5 py-0.5 bg-slate-800 border border-slate-700 rounded text-sky-300 font-bold">ESPACIO</kbd> o pedal</span>
+      </div>
+    </div>
+
+    <!-- Flechas y Franja Guía Focal Central -->
+    <div id="guide-overlay" class="absolute left-0 right-0 pointer-events-none z-30 flex items-center justify-between px-2 sm:px-8 transition-all duration-75" style="top: 45%;">
+      <div class="flex items-center gap-2">
+        <div class="w-0 h-0 border-y-[14px] border-y-transparent border-l-[22px] border-l-blue-500 drop-shadow-[0_0_10px_rgba(37,99,235,0.9)]"></div>
+        <div class="hidden sm:block h-[2px] w-12 bg-gradient-to-r from-blue-500 to-transparent"></div>
+      </div>
+
+      <div class="flex-1 h-24 bg-blue-600/[0.04] border-y border-blue-500/30 reading-glow rounded"></div>
+
+      <div class="flex items-center gap-2">
+        <div class="hidden sm:block h-[2px] w-12 bg-gradient-to-l from-blue-500 to-transparent"></div>
+        <div class="w-0 h-0 border-y-[14px] border-y-transparent border-r-[22px] border-r-blue-500 drop-shadow-[0_0_10px_rgba(37,99,235,0.9)]"></div>
+      </div>
+    </div>
+
+    <!-- Contenedor con Scroll de Texto -->
+    <div id="scroll-wrapper" class="w-full h-full overflow-y-scroll no-scrollbar cursor-grab active:cursor-grabbing">
+      <div id="teleprompter-content" class="max-w-4xl mx-auto px-6 sm:px-12 text-center text-slate-100 font-bold leading-relaxed tracking-wide transition-transform duration-200">
+        <!-- El contenido se inyecta dinámicamente -->
+      </div>
+    </div>
+
+    <!-- Cuenta regresiva flotante (3, 2, 1, ¡Al Aire!) -->
+    <div id="countdown-modal" class="absolute inset-0 bg-black/80 backdrop-blur-sm z-40 flex items-center justify-center hidden pointer-events-none">
+      <div class="text-center">
+        <div id="countdown-number" class="text-9xl font-black text-blue-400 animate-bounce tracking-tighter drop-shadow-[0_0_35px_rgba(37,99,235,0.8)]">3</div>
+        <p class="text-xl font-medium text-slate-300 mt-4 tracking-widest uppercase">Escuchando micrófono...</p>
+      </div>
+    </div>
+
+    <!-- Miniatura de Cámara Web Flotante -->
+    <div id="webcam-box" class="absolute bottom-6 right-6 w-56 h-40 bg-slate-900 border-2 border-blue-500 rounded-xl overflow-hidden shadow-2xl z-40 hidden flex-col">
+      <div class="bg-slate-950 px-2.5 py-1 text-[11px] font-mono flex items-center justify-between text-slate-400 border-b border-slate-800">
+        <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span> Vista Cámara</span>
+        <button id="btn-close-webcam" class="hover:text-white">&times;</button>
+      </div>
+      <video id="webcam-video" autoplay playsinline muted class="w-full h-full object-cover scale-x-[-1]"></video>
+    </div>
+
+    <!-- Panel Flotante Inferior de Estado -->
+    <div id="stats-panel" class="absolute bottom-4 left-1/2 -translate-x-1/2 bg-slate-900/95 backdrop-blur border border-slate-800 px-5 py-2 rounded-full text-xs text-slate-400 flex items-center gap-3.5 z-20 shadow-xl transition-opacity duration-300">
+      
+      <!-- Leyenda visual de colores -->
+      <div class="flex items-center gap-2 font-medium">
+        <span class="flex items-center gap-1 text-blue-500 font-semibold"><span class="w-2 h-2 rounded-full bg-blue-600"></span> Cantado (Azul)</span>
+        <span class="text-slate-600">|</span>
+        <span class="flex items-center gap-1 text-white font-semibold"><span class="w-2 h-2 rounded-full bg-white shadow-[0_0_6px_#fff]"></span> Por Cantar (Blanco)</span>
+      </div>
+
+      <div class="w-1 h-3 bg-slate-800"></div>
+
+      <!-- Indicador de voz en vivo -->
+      <div class="flex items-center gap-1.5">
+        <span class="text-slate-500">Micrófono:</span>
+        <span id="detected-transcript" class="text-blue-400 font-mono font-medium truncate max-w-[130px] sm:max-w-[180px]">En espera...</span>
+      </div>
+
+      <div class="w-1 h-3 bg-slate-800"></div>
+
+      <!-- Posición de la guía focal -->
+      <div class="flex items-center gap-1.5">
+        <span class="text-slate-500">Guía:</span>
+        <input type="range" id="guide-pos-slider" min="20" max="75" value="45" class="w-14 accent-blue-500 h-1 cursor-pointer">
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ================= MODAL DEL GESTOR DE REPERTORIO / SETLIST ================= -->
+  <div id="setlist-modal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-6 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-4xl flex flex-col max-h-[92vh] shadow-2xl overflow-hidden">
+      
+      <!-- Encabezado del repertorio -->
+      <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/60">
+        <div class="flex items-center gap-3">
+          <div class="p-2 bg-indigo-600/20 text-indigo-400 rounded-lg">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/></svg>
+          </div>
+          <div>
+            <h3 class="font-bold text-slate-100 text-base sm:text-lg">Repertorio / Setlist de Temas</h3>
+            <p class="text-xs text-slate-400">Ordena tus canciones para el show, agrega nuevas o edita letras</p>
+          </div>
+        </div>
+        <button id="btn-close-setlist" class="text-slate-400 hover:text-white p-2 text-2xl leading-none">&times;</button>
+      </div>
+
+      <!-- Contenido de dos columnas: Lista y Edición -->
+      <div class="grid grid-cols-1 md:grid-cols-12 flex-1 overflow-hidden">
+        
+        <!-- Columna Izquierda: Lista de canciones ordenable (5 cols) -->
+        <div class="md:col-span-5 border-b md:border-b-0 md:border-r border-slate-800 p-4 flex flex-col gap-3 overflow-hidden bg-slate-900/40">
+          <div class="flex items-center justify-between text-xs font-semibold text-slate-400 uppercase tracking-wider">
+            <span>Lista de Temas (<span id="song-count">0</span>)</span>
+            <button id="btn-new-song" class="text-blue-400 hover:text-blue-300 font-bold flex items-center gap-1">+ Nuevo Tema</button>
+          </div>
+
+          <div id="songs-list-container" class="flex-1 overflow-y-auto no-scrollbar space-y-2 pr-1">
+            <!-- Canciones inyectadas dinámicamente -->
+          </div>
+
+          <!-- Opciones de Importar y Exportar -->
+          <div class="pt-2 border-t border-slate-800 flex items-center justify-between text-xs">
+            <button id="btn-export-setlist" class="text-slate-400 hover:text-slate-200 flex items-center gap-1">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+              <span>Exportar Setlist</span>
+            </button>
+
+            <label class="text-slate-400 hover:text-slate-200 cursor-pointer flex items-center gap-1">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+              <span>Importar</span>
+              <input type="file" id="input-import-setlist" accept=".json" class="hidden">
+            </label>
+          </div>
+        </div>
+
+        <!-- Columna Derecha: Formulario de edición del tema seleccionado (7 cols) -->
+        <div class="md:col-span-7 p-4 sm:p-5 flex flex-col gap-3 overflow-hidden bg-slate-950/40">
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Título del Tema o Bloque:</label>
+            <input type="text" id="edit-song-title" class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-slate-100 text-sm font-semibold focus:outline-none focus:border-blue-500" placeholder="Ej: Seminare (En Vivo)">
+          </div>
+
+          <div class="flex-1 flex flex-col overflow-hidden">
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Letra o Guión:</label>
+            <textarea id="edit-song-content" class="w-full flex-1 p-3 bg-slate-900 border border-slate-800 rounded-lg text-slate-100 font-mono text-xs leading-relaxed focus:outline-none focus:border-blue-500 resize-none" placeholder="Escribe o pega aquí los versos..."></textarea>
+          </div>
+
+          <div class="flex items-center justify-between pt-2">
+            <button id="btn-delete-song" class="text-rose-400 hover:text-rose-300 text-xs font-medium flex items-center gap-1">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              <span>Eliminar Tema</span>
+            </button>
+
+            <div class="flex items-center gap-2">
+              <button id="btn-save-song" class="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition shadow-md shadow-blue-950/50">Guardar Cambios</button>
+              <button id="btn-load-and-exit" class="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition shadow-md shadow-emerald-950/50">Cargar y Ver en Pantalla</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Pie del modal -->
+      <div class="px-6 py-2.5 bg-slate-950 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
+        <span class="flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-indigo-400"></span>
+          Auto-Cue activo: Al cantar la última palabra, se arma automáticamente el siguiente tema y queda en espera.
+        </span>
+        <button id="btn-finish-modal" class="text-slate-300 hover:text-white font-semibold">Cerrar</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Toast de Notificaciones Flotante -->
+  <div id="toast" class="fixed top-16 left-1/2 -translate-x-1/2 bg-slate-800/95 border border-slate-700 text-slate-100 text-xs px-4 py-2 rounded-full shadow-2xl pointer-events-none transition-all duration-300 opacity-0 -translate-y-2 z-50">
+    Mensaje
+  </div>
+
+  <!-- ================= JAVASCRIPT DEL TELEPROMPTER ================= -->
+  <script>
+    // Repertorio inicial de canciones de muestra
+    const INITIAL_SETLIST = [
+      {
+        id: "song_1",
+        title: "1. Inconsciente Colectivo (Charly García)",
+        content: `Nace una flor, todos los días sale el sol
+De vez en cuando además, alguien se suele enamorar
+Y si los reyes de este mundo, nunca pudieron hacerla feliz
+Quién sabe qué será de ti, quién sabe qué será de mí
+
+Mama la libertad, siempre la llevarás
+Dentro del corazón, te pueden arrestar
+Te pueden disparar, te pueden asesinar
+Pero jamás podrán matar la libertad`
+      },
+      {
+        id: "song_2",
+        title: "2. Seminare (Serú Girán)",
+        content: `Sigo dando vueltas en la madrugada
+Escucho tu voz que me llama
+Y no hay nadie aquí
+Solo las sombras de la ciudad
+
+No ves que no puedo vivir sin ti
+No ves que la lluvia cae sobre mí
+Dame un poco de tu amor
+Que me estoy muriendo de frío`
+      },
+      {
+        id: "song_3",
+        title: "3. Guión de Locución / Presentación",
+        content: `¡Bienvenidos a la transmisión oficial en directo!
+Hoy tenemos un programa inolvidable repleto de novedades.
+Agradecemos a toda la audiencia que nos acompaña desde diferentes países.
+Quédense con nosotros porque comenzamos ahora mismo.`
+      }
+    ];
+
+    // Estado central de la aplicación
+    const state = {
+      setlist: [...INITIAL_SETLIST],
+      currentSongIndex: 0,
+      isPlaying: false,
+      isVoiceMode: true,
+      isCountdown: false,
+      speed: 2.4,
+      fontSize: 44,
+      mirrorH: false,
+      mirrorV: false,
+      guidePosition: 45,
+      scrollPos: 0,
+      animId: null,
+      webcamStream: null,
+      currentWordIndex: 0,
+      isSongFinished: false,
+    };
+
+    // Estructura de palabras en memoria
+    let wordObjects = [];
+
+    // Referencias al DOM
+    const scrollWrapper = document.getElementById('scroll-wrapper');
+    const teleprompterContent = document.getElementById('teleprompter-content');
+    const btnTogglePlay = document.getElementById('btn-toggle-play');
+    const playIcon = document.getElementById('play-icon');
+    const pauseIcon = document.getElementById('pause-icon');
+    const playLabel = document.getElementById('play-label');
+    const btnRewind = document.getElementById('btn-rewind');
+    const recordingBadge = document.getElementById('recording-badge');
+    const speedSlider = document.getElementById('speed-slider');
+    const speedIndicator = document.getElementById('speed-indicator');
+    const btnSpeedUp = document.getElementById('btn-speed-up');
+    const btnSpeedDown = document.getElementById('btn-speed-down');
+    const fontSlider = document.getElementById('font-slider');
+    const fontIndicator = document.getElementById('font-indicator');
+    const btnToggleVoice = document.getElementById('btn-toggle-voice');
+    const voiceModeLabel = document.getElementById('voice-mode-label');
+    const micPing = document.getElementById('mic-ping');
+    const micDot = document.getElementById('mic-dot');
+    const detectedTranscript = document.getElementById('detected-transcript');
+    const btnMirrorH = document.getElementById('btn-mirror-h');
+    const btnMirrorV = document.getElementById('btn-mirror-v');
+    const btnWebcam = document.getElementById('btn-webcam');
+    const webcamBox = document.getElementById('webcam-box');
+    const webcamVideo = document.getElementById('webcam-video');
+    const btnCloseWebcam = document.getElementById('btn-close-webcam');
+    const btnFullscreen = document.getElementById('btn-fullscreen');
+    const progressBar = document.getElementById('progress-bar');
+    const guideOverlay = document.getElementById('guide-overlay');
+    const guidePosSlider = document.getElementById('guide-pos-slider');
+    const countdownModal = document.getElementById('countdown-modal');
+    const countdownNumber = document.getElementById('countdown-number');
+    const autocueBanner = document.getElementById('autocue-banner');
+    const autocueSongTitle = document.getElementById('autocue-song-title');
+    const toast = document.getElementById('toast');
+
+    // Referencias del Setlist
+    const selectActiveSong = document.getElementById('select-active-song');
+    const btnPrevSong = document.getElementById('btn-prev-song');
+    const btnNextSong = document.getElementById('btn-next-song');
+    const btnOpenSetlist = document.getElementById('btn-open-setlist');
+    const setlistModal = document.getElementById('setlist-modal');
+    const btnCloseSetlist = document.getElementById('btn-close-setlist');
+    const btnFinishModal = document.getElementById('btn-finish-modal');
+    const songsListContainer = document.getElementById('songs-list-container');
+    const songCount = document.getElementById('song-count');
+    const btnNewSong = document.getElementById('btn-new-song');
+    const editSongTitle = document.getElementById('edit-song-title');
+    const editSongContent = document.getElementById('edit-song-content');
+    const btnDeleteSong = document.getElementById('btn-delete-song');
+    const btnSaveSong = document.getElementById('btn-save-song');
+    const btnLoadAndExit = document.getElementById('btn-load-and-exit');
+    const btnExportSetlist = document.getElementById('btn-export-setlist');
+    const inputImportSetlist = document.getElementById('input-import-setlist');
+
+    let editingSongId = null;
+
+    // Toast informativo
+    function showToast(msg) {
+      toast.textContent = msg;
+      toast.classList.remove('opacity-0', '-translate-y-2');
+      toast.classList.add('opacity-100', 'translate-y-0');
+      setTimeout(() => {
+        toast.classList.remove('opacity-100', 'translate-y-0');
+        toast.classList.add('opacity-0', '-translate-y-2');
+      }, 2300);
+    }
+
+    // Normalizador de texto para canto: limpia signos y colapsa vocales prolongadas
+    function cleanWord(str) {
+      if (!str) return "";
+      return str.toLowerCase()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]/g, "")
+        .replace(/(.)\1{2,}/g, "$1");
+    }
+
+    // Renderiza el tema actual en el teleprompter
+    function renderCurrentSong() {
+      const song = state.setlist[state.currentSongIndex];
+      if (!song) return;
+
+      const paragraphs = song.content.split('\n');
+      teleprompterContent.innerHTML = '';
+      wordObjects = [];
+      state.currentWordIndex = 0;
+      state.isSongFinished = false;
+
+      // Espaciador superior
+      const topSpacer = document.createElement('div');
+      topSpacer.id = 'top-spacer';
+      topSpacer.style.height = `${state.guidePosition}vh`;
+      teleprompterContent.appendChild(topSpacer);
+
+      let globalWordIdx = 0;
+
+      paragraphs.forEach(p => {
+        if (p.trim() === '') {
+          const emptyLine = document.createElement('div');
+          emptyLine.className = 'h-8';
+          teleprompterContent.appendChild(emptyLine);
+          return;
+        }
+
+        const pEl = document.createElement('p');
+        pEl.className = 'my-6 leading-relaxed';
+
+        const tokens = p.split(/(\s+)/);
+        tokens.forEach(token => {
+          if (token.trim() === '') {
+            pEl.appendChild(document.createTextNode(token));
+          } else {
+            const span = document.createElement('span');
+            span.className = 'prompter-word inline-block word-upcoming';
+            span.textContent = token;
+            span.dataset.index = globalWordIdx;
+
+            wordObjects.push({
+              index: globalWordIdx,
+              raw: token,
+              clean: cleanWord(token),
+              el: span
+            });
+
+            pEl.appendChild(span);
+            globalWordIdx++;
+          }
+        });
+
+        teleprompterContent.appendChild(pEl);
+      });
+
+      // Espaciador inferior
+      const bottomSpacer = document.createElement('div');
+      bottomSpacer.id = 'bottom-spacer';
+      bottomSpacer.style.height = '80vh';
+      teleprompterContent.appendChild(bottomSpacer);
+
+      updateTransformations();
+      updateFontSize();
+      highlightWords(0);
+      syncSongSelectorUI();
+    }
+
+    // Actualiza colores de palabras: Azul (leídas), Blanco (por venir)
+    function highlightWords(targetIndex) {
+      if (wordObjects.length === 0) return;
+      state.currentWordIndex = Math.max(0, Math.min(targetIndex, wordObjects.length - 1));
+
+      for (let i = 0; i < wordObjects.length; i++) {
+        const item = wordObjects[i];
+        if (i < state.currentWordIndex) {
+          item.el.className = 'prompter-word inline-block word-passed';
+        } else if (i === state.currentWordIndex) {
+          item.el.className = 'prompter-word inline-block word-active';
+        } else {
+          item.el.className = 'prompter-word inline-block word-upcoming';
+        }
+      }
+
+      // Centrar palabra activa en la guía focal
+      const activeObj = wordObjects[state.currentWordIndex];
+      if (activeObj && activeObj.el) {
+        centerWordOnGuide(activeObj.el);
+      }
+
+      // Progreso superior
+      const progress = (state.currentWordIndex / (wordObjects.length - 1)) * 100;
+      progressBar.style.width = `${Math.min(100, Math.max(0, progress))}%`;
+
+      // Comprobar si se alcanzó la última palabra para activar Auto-Cue
+      if (state.currentWordIndex >= wordObjects.length - 1 && !state.isSongFinished) {
+        state.isSongFinished = true;
+        handleSongFinished();
+      }
+    }
+
+    // Centrado suave en la línea de lectura
+    function centerWordOnGuide(el) {
+      const containerHeight = scrollWrapper.clientHeight;
+      const guideY = containerHeight * (state.guidePosition / 100);
+      const targetScroll = el.offsetTop - guideY + (el.offsetHeight / 2);
+
+      scrollWrapper.scrollTo({
+        top: Math.max(0, targetScroll),
+        behavior: 'smooth'
+      });
+    }
+
+    // ================= AUTO-CUE: AVANCE ARMADO ENTRE CANCIONES =================
+    function handleSongFinished() {
+      // Si hay un tema siguiente en el repertorio
+      if (state.currentSongIndex < state.setlist.length - 1) {
+        setTimeout(() => {
+          stopPrompter();
+          const nextIndex = state.currentSongIndex + 1;
+          changeSong(nextIndex, false); // Cargar tema pero NO arrancar todavía
+
+          // Mostrar banner de Auto-Cue armado
+          autocueSongTitle.textContent = state.setlist[nextIndex].title;
+          autocueBanner.classList.remove('opacity-0', '-translate-y-4');
+          autocueBanner.classList.add('opacity-100', 'translate-y-0');
+
+          showToast('Siguiente tema listo. Toca ESPACIO o pedal para iniciar.');
+        }, 1200);
+      } else {
+        showToast('¡Has llegado al final del repertorio!');
+        stopPrompter();
+      }
+    }
+
+    function hideAutoCueBanner() {
+      autocueBanner.classList.remove('opacity-100', 'translate-y-0');
+      autocueBanner.classList.add('opacity-0', '-translate-y-4');
+    }
+
+    function changeSong(index, shouldStart = false) {
+      if (index < 0 || index >= state.setlist.length) return;
+      state.currentSongIndex = index;
+      renderCurrentSong();
+      rewind();
+      if (shouldStart) {
+        startPrompter();
+      }
+    }
+
+    function syncSongSelectorUI() {
+      selectActiveSong.innerHTML = '';
+      state.setlist.forEach((song, idx) => {
+        const opt = document.createElement('option');
+        opt.value = idx;
+        opt.textContent = song.title;
+        if (idx === state.currentSongIndex) opt.selected = true;
+        selectActiveSong.appendChild(opt);
+      });
+      songCount.textContent = state.setlist.length;
+    }
+
+    selectActiveSong.addEventListener('change', (e) => {
+      changeSong(parseInt(e.target.value), false);
+      hideAutoCueBanner();
+    });
+
+    btnPrevSong.addEventListener('click', () => {
+      if (state.currentSongIndex > 0) {
+        changeSong(state.currentSongIndex - 1, false);
+        hideAutoCueBanner();
+      }
+    });
+
+    btnNextSong.addEventListener('click', () => {
+      if (state.currentSongIndex < state.setlist.length - 1) {
+        changeSong(state.currentSongIndex + 1, false);
+        hideAutoCueBanner();
+      }
+    });
+
+    // ================= GESTIÓN DEL MODAL DE REPERTORIO =================
+    function openSetlistManager() {
+      if (state.isPlaying) stopPrompter();
+      renderSetlistModal();
+      selectSongForEditing(state.currentSongIndex);
+      setlistModal.classList.remove('hidden');
+    }
+
+    function closeSetlistManager() {
+      setlistModal.classList.add('hidden');
+    }
+
+    function renderSetlistModal() {
+      songsListContainer.innerHTML = '';
+      songCount.textContent = state.setlist.length;
+
+      state.setlist.forEach((song, idx) => {
+        const item = document.createElement('div');
+        const isActive = idx === state.currentSongIndex;
+        item.className = `p-2.5 rounded-lg border flex items-center justify-between gap-2 cursor-pointer transition ${
+          isActive 
+            ? 'bg-blue-950/60 border-blue-500/80 text-white shadow-sm' 
+            : 'bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800'
+        }`;
+
+        item.innerHTML = `
+          <div class="flex items-center gap-2 truncate">
+            <span class="text-xs font-mono font-bold text-slate-500">${idx + 1}.</span>
+            <span class="text-xs font-semibold truncate">${song.title}</span>
+          </div>
+          <div class="flex items-center gap-1">
+            <button class="btn-move-up p-1 text-slate-400 hover:text-white rounded" title="Subir orden">&uarr;</button>
+            <button class="btn-move-down p-1 text-slate-400 hover:text-white rounded" title="Bajar orden">&darr;</button>
+          </div>
+        `;
+
+        item.addEventListener('click', (e) => {
+          if (!e.target.closest('button')) {
+            selectSongForEditing(idx);
+          }
+        });
+
+        // Botones subir / bajar
+        item.querySelector('.btn-move-up').addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (idx > 0) {
+            const temp = state.setlist[idx];
+            state.setlist[idx] = state.setlist[idx - 1];
+            state.setlist[idx - 1] = temp;
+            if (state.currentSongIndex === idx) state.currentSongIndex = idx - 1;
+            else if (state.currentSongIndex === idx - 1) state.currentSongIndex = idx;
+            renderSetlistModal();
+            syncSongSelectorUI();
+          }
+        });
+
+        item.querySelector('.btn-move-down').addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (idx < state.setlist.length - 1) {
+            const temp = state.setlist[idx];
+            state.setlist[idx] = state.setlist[idx + 1];
+            state.setlist[idx + 1] = temp;
+            if (state.currentSongIndex === idx) state.currentSongIndex = idx + 1;
+            else if (state.currentSongIndex === idx + 1) state.currentSongIndex = idx;
+            renderSetlistModal();
+            syncSongSelectorUI();
+          }
+        });
+
+        songsListContainer.appendChild(item);
+      });
+    }
+
+    function selectSongForEditing(index) {
+      const song = state.setlist[index];
+      if (!song) return;
+      editingSongId = song.id;
+      editSongTitle.value = song.title;
+      editSongContent.value = song.content;
+      renderSetlistModal();
+    }
+
+    btnNewSong.addEventListener('click', () => {
+      const newSong = {
+        id: "song_" + Date.now(),
+        title: `Nuevo Tema (${state.setlist.length + 1})`,
+        content: "Escribe o pega aquí la letra..."
+      };
+      state.setlist.push(newSong);
+      editingSongId = newSong.id;
+      editSongTitle.value = newSong.title;
+      editSongContent.value = newSong.content;
+      renderSetlistModal();
+      syncSongSelectorUI();
+      editSongTitle.focus();
+    });
+
+    btnSaveSong.addEventListener('click', () => {
+      const song = state.setlist.find(s => s.id === editingSongId);
+      if (song) {
+        song.title = editSongTitle.value.trim() || "Sin Título";
+        song.content = editSongContent.value.trim();
+        renderSetlistModal();
+        syncSongSelectorUI();
+        showToast('Tema guardado');
+      }
+    });
+
+    btnDeleteSong.addEventListener('click', () => {
+      if (state.setlist.length <= 1) {
+        showToast('Debe haber al menos un tema en el repertorio');
+        return;
+      }
+      state.setlist = state.setlist.filter(s => s.id !== editingSongId);
+      state.currentSongIndex = Math.min(state.currentSongIndex, state.setlist.length - 1);
+      selectSongForEditing(state.currentSongIndex);
+      syncSongSelectorUI();
+      showToast('Tema eliminado');
+    });
+
+    btnLoadAndExit.addEventListener('click', () => {
+      const song = state.setlist.find(s => s.id === editingSongId);
+      if (song) {
+        song.title = editSongTitle.value.trim() || "Sin Título";
+        song.content = editSongContent.value.trim();
+        state.currentSongIndex = state.setlist.indexOf(song);
+      }
+      renderCurrentSong();
+      rewind();
+      closeSetlistManager();
+      hideAutoCueBanner();
+      showToast('Tema cargado en pantalla');
+    });
+
+    btnOpenSetlist.addEventListener('click', openSetlistManager);
+    btnCloseSetlist.addEventListener('click', closeSetlistManager);
+    btnFinishModal.addEventListener('click', closeSetlistManager);
+
+    // Exportar Repertorio como archivo JSON
+    btnExportSetlist.addEventListener('click', () => {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state.setlist, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `repertorio_teleprompter_${new Date().toISOString().slice(0,10)}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      showToast('Repertorio exportado');
+    });
+
+    // Importar Repertorio desde archivo JSON
+    inputImportSetlist.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const imported = JSON.parse(event.target.result);
+          if (Array.isArray(imported) && imported.length > 0) {
+            state.setlist = imported;
+            state.currentSongIndex = 0;
+            renderSetlistModal();
+            renderCurrentSong();
+            showToast('Repertorio importado con éxito');
+          }
+        } catch (err) {
+          showToast('Error al leer el archivo JSON');
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    // ================= CANAL CONTINUO DE AUDIO Y RECONOCIMIENTO DE VOZ =================
+    let recognition = null;
+    let wakeLock = null;
+    let activeMicStream = null; // Mantiene el micrófono abierto para evitar cortes en Windows/Edge e iOS
+    let isRestarting = false;
+
+    async function requestWakeLock() {
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLock = await navigator.wakeLock.request('screen');
+        }
+      } catch (err) {}
+    }
+
+    function releaseWakeLock() {
+      if (wakeLock) {
+        wakeLock.release().catch(() => {});
+        wakeLock = null;
+      }
+    }
+
+    // Inicialización del flujo continuo de micrófono (solución a Edge de Windows)
+    async function acquirePersistentMic() {
+      if (activeMicStream) return;
+      try {
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+          activeMicStream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true
+            }
+          });
+        }
+      } catch (e) {
+        // En caso de que se use sin HTTPS o permiso denegado
+      }
+    }
+
+    function releasePersistentMic() {
+      if (activeMicStream) {
+        activeMicStream.getTracks().forEach(track => track.stop());
+        activeMicStream = null;
+      }
+    }
+
+    function initSpeechRecognition() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        showToast('Navegador sin soporte de voz. Usando modo continuo.');
+        setVoiceMode(false);
+        return;
+      }
+
+      recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'es-ES';
+      recognition.maxAlternatives = 1;
+
+      recognition.onstart = () => {
+        isRestarting = false;
+        micPing.classList.remove('hidden');
+        micDot.classList.replace('bg-slate-400', 'bg-emerald-400');
+        detectedTranscript.textContent = "Escuchando voz...";
+      };
+
+      recognition.onresult = (event) => {
+        let transcript = "";
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          transcript += event.results[i][0].transcript + " ";
+        }
+
+        const trimmed = transcript.trim();
+        if (!trimmed) return;
+
+        detectedTranscript.textContent = `"${trimmed.slice(-22)}"`;
+        processVoiceInput(trimmed);
+      };
+
+      recognition.onerror = (e) => {
+        if (e.error === 'not-allowed') {
+          showToast('Permiso de micrófono denegado');
+          setVoiceMode(false);
+        }
+      };
+
+      recognition.onend = () => {
+        // Reinicio transparente continuo si la sesión sigue activa
+        if (state.isPlaying && state.isVoiceMode && !isRestarting) {
+          isRestarting = true;
+          setTimeout(() => {
+            if (state.isPlaying && state.isVoiceMode) {
+              try {
+                recognition.start();
+              } catch (e) {
+                isRestarting = false;
+              }
+            }
+          }, 80);
+        } else {
+          micPing.classList.add('hidden');
+          micDot.classList.replace('bg-emerald-400', 'bg-slate-400');
+        }
+      };
+    }
+
+    // Algoritmo de comparación con tolerancia para canto y habla
+    function processVoiceInput(spokenText) {
+      if (!state.isPlaying || wordObjects.length === 0) return;
+
+      const spokenWords = spokenText.split(/\s+/).map(cleanWord).filter(w => w.length > 0);
+      if (spokenWords.length === 0) return;
+
+      const startIndex = state.currentWordIndex;
+      const lookAheadLimit = Math.min(startIndex + 12, wordObjects.length);
+      let matchedIndex = -1;
+
+      for (let s = spokenWords.length - 1; s >= 0; s--) {
+        const spoken = spokenWords[s];
+        if (spoken.length < 2) continue;
+
+        for (let i = startIndex; i < lookAheadLimit; i++) {
+          const target = wordObjects[i].clean;
+          if (target === spoken || (spoken.length >= 3 && target.startsWith(spoken)) || (target.length >= 4 && spoken.includes(target))) {
+            matchedIndex = i;
+            break;
+          }
+        }
+        if (matchedIndex !== -1) break;
+      }
+
+      if (matchedIndex !== -1) {
+        highlightWords(matchedIndex);
+      }
+    }
+
+    async function startListening() {
+      await acquirePersistentMic();
+      if (!recognition) initSpeechRecognition();
+      if (!recognition) return;
+
+      try {
+        recognition.start();
+      } catch (e) {}
+      requestWakeLock();
+    }
+
+    function stopListening() {
+      if (recognition) {
+        try {
+          recognition.stop();
+        } catch (e) {}
+      }
+      releasePersistentMic();
+      releaseWakeLock();
+    }
+
+    // Alternar entre modo voz y modo continuo por velocidad
+    function setVoiceMode(enabled) {
+      state.isVoiceMode = enabled;
+      if (state.isVoiceMode) {
+        btnToggleVoice.classList.replace('bg-slate-800', 'bg-blue-600');
+        btnToggleVoice.classList.replace('text-slate-300', 'text-white');
+        voiceModeLabel.textContent = 'Voz: ACTIVA';
+        showToast('Seguimiento por voz activado');
+        if (state.isPlaying) startListening();
+      } else {
+        btnToggleVoice.classList.replace('bg-blue-600', 'bg-slate-800');
+        btnToggleVoice.classList.replace('text-white', 'text-slate-300');
+        voiceModeLabel.textContent = 'Voz: APAGADA';
+        micPing.classList.add('hidden');
+        micDot.classList.replace('bg-emerald-400', 'bg-slate-400');
+        detectedTranscript.textContent = "Modo Continuo";
+        stopListening();
+        showToast('Modo de velocidad continua');
+      }
+    }
+
+    btnToggleVoice.addEventListener('click', () => setVoiceMode(!state.isVoiceMode));
+
+    // Bucle continuo para modo sin voz
+    function continuousStep() {
+      if (!state.isPlaying || state.isVoiceMode) return;
+
+      const increment = (state.speed * 0.6);
+      state.scrollPos += increment;
+      scrollWrapper.scrollTop = state.scrollPos;
+
+      const focalLineY = scrollWrapper.scrollTop + (scrollWrapper.clientHeight * (state.guidePosition / 100));
+      let currentIdx = 0;
+      for (let i = 0; i < wordObjects.length; i++) {
+        if (wordObjects[i].el.offsetTop <= focalLineY) {
+          currentIdx = i;
+        } else {
+          break;
+        }
+      }
+
+      highlightWords(currentIdx);
+
+      if (scrollWrapper.scrollTop + scrollWrapper.clientHeight >= scrollWrapper.scrollHeight - 5) {
+        stopPrompter();
+        handleSongFinished();
+        return;
+      }
+
+      state.animId = requestAnimationFrame(continuousStep);
+    }
+
+    function startPrompter() {
+      state.isPlaying = true;
+      hideAutoCueBanner();
+
+      playIcon.classList.add('hidden');
+      pauseIcon.classList.remove('hidden');
+      playLabel.textContent = 'Pausar';
+      btnTogglePlay.classList.replace('bg-blue-600', 'bg-emerald-600');
+      btnTogglePlay.classList.replace('hover:bg-blue-500', 'hover:bg-emerald-500');
+      recordingBadge.classList.replace('bg-slate-500', 'bg-red-500');
+      recordingBadge.classList.add('animate-pulse');
+
+      if (state.isVoiceMode) {
+        startListening();
+      } else {
+        state.scrollPos = scrollWrapper.scrollTop;
+        state.animId = requestAnimationFrame(continuousStep);
+      }
+    }
+
+    function stopPrompter() {
+      state.isPlaying = false;
+      if (state.animId) cancelAnimationFrame(state.animId);
+      stopListening();
+
+      playIcon.classList.remove('hidden');
+      pauseIcon.classList.add('hidden');
+      playLabel.textContent = 'Iniciar';
+      btnTogglePlay.classList.replace('bg-emerald-600', 'bg-blue-600');
+      btnTogglePlay.classList.replace('hover:bg-emerald-500', 'hover:bg-blue-500');
+      recordingBadge.classList.replace('bg-red-500', 'bg-slate-500');
+      recordingBadge.classList.remove('animate-pulse');
+      detectedTranscript.textContent = "Pausado";
+    }
+
+    function togglePlay() {
+      if (state.isPlaying) {
+        stopPrompter();
+      } else {
+        if (state.currentWordIndex === 0) {
+          triggerCountdown(() => startPrompter());
+        } else {
+          startPrompter();
+        }
+      }
+    }
+
+    function triggerCountdown(callback) {
+      if (state.isCountdown) return;
+      state.isCountdown = true;
+      countdownModal.classList.remove('hidden');
+      let count = 3;
+      countdownNumber.textContent = count;
+
+      const timer = setInterval(() => {
+        count--;
+        if (count > 0) {
+          countdownNumber.textContent = count;
+        } else if (count === 0) {
+          countdownNumber.textContent = "¡VAMOS!";
+        } else {
+          clearInterval(timer);
+          countdownModal.classList.add('hidden');
+          state.isCountdown = false;
+          callback();
+        }
+      }, 700);
+    }
+
+    function rewind() {
+      stopPrompter();
+      highlightWords(0);
+      scrollWrapper.scrollTo({ top: 0, behavior: 'smooth' });
+      progressBar.style.width = '0%';
+      showToast('Rebobinado al inicio');
+    }
+
+    // Saltar a cualquier palabra con clic o toque táctil
+    teleprompterContent.addEventListener('click', (e) => {
+      const wordEl = e.target.closest('.prompter-word');
+      if (wordEl && wordEl.dataset.index) {
+        const idx = parseInt(wordEl.dataset.index, 10);
+        highlightWords(idx);
+      }
+    });
+
+    // Velocidad y Fuente
+    function setSpeed(newSpeed) {
+      state.speed = Math.max(0.4, Math.min(10, parseFloat(newSpeed.toFixed(1))));
+      speedSlider.value = state.speed;
+      speedIndicator.textContent = `${state.speed.toFixed(1)}x`;
+    }
+
+    speedSlider.addEventListener('input', (e) => setSpeed(parseFloat(e.target.value)));
+    btnSpeedUp.addEventListener('click', () => setSpeed(state.speed + 0.3));
+    btnSpeedDown.addEventListener('click', () => setSpeed(state.speed - 0.3));
+
+    function updateFontSize() {
+      teleprompterContent.style.fontSize = `${state.fontSize}px`;
+      fontIndicator.textContent = `${state.fontSize}`;
+      fontSlider.value = state.fontSize;
+    }
+
+    fontSlider.addEventListener('input', (e) => {
+      state.fontSize = parseInt(e.target.value);
+      updateFontSize();
+    });
+
+    // Modos de Espejo
+    function updateTransformations() {
+      teleprompterContent.classList.remove('flip-x', 'flip-y', 'flip-both');
+      if (state.mirrorH && state.mirrorV) teleprompterContent.classList.add('flip-both');
+      else if (state.mirrorH) teleprompterContent.classList.add('flip-x');
+      else if (state.mirrorV) teleprompterContent.classList.add('flip-y');
+
+      btnMirrorH.classList.toggle('bg-blue-600', state.mirrorH);
+      btnMirrorH.classList.toggle('text-white', state.mirrorH);
+      btnMirrorV.classList.toggle('bg-blue-600', state.mirrorV);
+      btnMirrorV.classList.toggle('text-white', state.mirrorV);
+    }
+
+    btnMirrorH.addEventListener('click', () => {
+      state.mirrorH = !state.mirrorH;
+      updateTransformations();
+    });
+
+    btnMirrorV.addEventListener('click', () => {
+      state.mirrorV = !state.mirrorV;
+      updateTransformations();
+    });
+
+    // Posición focal de lectura
+    guidePosSlider.addEventListener('input', (e) => {
+      state.guidePosition = parseInt(e.target.value);
+      guideOverlay.style.top = `${state.guidePosition}%`;
+      const topSpacer = document.getElementById('top-spacer');
+      if (topSpacer) topSpacer.style.height = `${state.guidePosition}vh`;
+      highlightWords(state.currentWordIndex);
+    });
+
+    // Cámara Web
+    btnWebcam.addEventListener('click', async () => {
+      if (state.webcamStream) {
+        closeWebcam();
+      } else {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 480, height: 360 } });
+          state.webcamStream = stream;
+          webcamVideo.srcObject = stream;
+          webcamBox.classList.remove('hidden');
+          btnWebcam.classList.add('bg-blue-600', 'text-white');
+        } catch (err) {
+          showToast('No se pudo acceder a la cámara');
+        }
+      }
+    });
+
+    function closeWebcam() {
+      if (state.webcamStream) {
+        state.webcamStream.getTracks().forEach(t => t.stop());
+        state.webcamStream = null;
+      }
+      webcamBox.classList.add('hidden');
+      btnWebcam.classList.remove('bg-blue-600', 'text-white');
+    }
+    btnCloseWebcam.addEventListener('click', closeWebcam);
+
+    btnFullscreen.addEventListener('click', () => {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
+      else document.exitFullscreen().catch(() => {});
+    });
+
+    btnTogglePlay.addEventListener('click', togglePlay);
+    btnRewind.addEventListener('click', rewind);
+
+    // Atajos de teclado para escenario y pedales Bluetooth
+    window.addEventListener('keydown', (e) => {
+      if (!setlistModal.classList.contains('hidden')) return;
+
+      if (e.code === 'Space') {
+        e.preventDefault();
+        togglePlay();
+      } else if (e.code === 'ArrowUp') {
+        e.preventDefault();
+        setSpeed(state.speed + 0.3);
+      } else if (e.code === 'ArrowDown') {
+        e.preventDefault();
+        setSpeed(state.speed - 0.3);
+      } else if (e.key === 'r' || e.key === 'R') {
+        rewind();
+      } else if (e.key === 'v' || e.key === 'V') {
+        setVoiceMode(!state.isVoiceMode);
+      } else if (e.key === 'm' || e.key === 'M') {
+        state.mirrorH = !state.mirrorH;
+        updateTransformations();
+      } else if (e.key === '[' || e.key === 'p' || e.key === 'P') {
+        // Tema anterior (Pedal / Teclado)
+        btnPrevSong.click();
+      } else if (e.key === ']' || e.key === 'n' || e.key === 'N') {
+        // Tema siguiente (Pedal / Teclado)
+        btnNextSong.click();
+      } else if (e.key === 'f' || e.key === 'F') {
+        btnFullscreen.click();
+      }
+    });
+
+    // Carga inicial
+    window.addEventListener('DOMContentLoaded', () => {
+      renderCurrentSong();
+      initSpeechRecognition();
+    });
+  </script>
+</body>
+</html>
