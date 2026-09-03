@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Teleprompter Pro Studio - Edición Cantantes</title>
+  <title>Teleprompter Pro Studio - Edición Cantantes & Escenario</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -108,6 +108,12 @@
       cursor: ns-resize;
     }
 
+    /* Destello perimetral de feedback óptico para pedal en escenario */
+    #pedal-flash-overlay {
+      pointer-events: none;
+      transition: opacity 0.35s ease;
+    }
+
     /* Modo Enfoque / Pantalla Completa para iPhone */
     body.focus-mode #main-header,
     body.focus-mode #singer-notes-banner,
@@ -119,17 +125,26 @@
     }
   </style>
 </head>
-<body class="app-height flex flex-col select-none overflow-hidden font-sans bg-black pb-[env(safe-area-inset-bottom)]">
+<body class="app-height flex flex-col select-none overflow-hidden font-sans bg-black pb-[env(safe-area-inset-bottom)] relative">
+
+  <!-- ================= OVERLAY DE FEEDBACK ÓPTICO DE ESCENARIO (HUD) ================= -->
+  <div id="pedal-flash-overlay" class="absolute inset-0 z-50 opacity-0 border-[6px] border-transparent pointer-events-none transition-all duration-300"></div>
+
+  <!-- HUD Badge Central de Alto Contraste (para ver a 2 metros de distancia) -->
+  <div id="pedal-hud" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 bg-slate-900/90 border-2 border-slate-700 backdrop-blur-md px-6 py-4 rounded-3xl flex flex-col items-center justify-center gap-2 shadow-2xl opacity-0 scale-90 pointer-events-none transition-all duration-200">
+    <div id="hud-icon" class="text-4xl sm:text-5xl font-black text-white">▶</div>
+    <div id="hud-text" class="text-xs sm:text-sm font-bold tracking-widest uppercase font-mono text-slate-300">Reanudar</div>
+  </div>
 
   <!-- ================= BARRA DE CONTROL SUPERIOR ================= -->
-  <header id="main-header" class="bg-slate-900/95 backdrop-blur border-b border-slate-800 z-50 transition-all duration-300 pt-[env(safe-area-inset-top)] shrink-0">
+  <header id="main-header" class="bg-slate-900/95 backdrop-blur border-b border-slate-800 z-40 transition-all duration-300 pt-[env(safe-area-inset-top)] shrink-0">
     <div class="max-w-7xl mx-auto px-3 sm:px-4 py-2 flex flex-wrap items-center justify-between gap-2 text-xs sm:text-sm">
       
       <!-- Controles de Reproducción y Estado -->
       <div class="flex items-center gap-1.5 sm:gap-2">
         <div class="flex items-center gap-1.5 font-bold tracking-wider text-slate-100 uppercase mr-1">
           <div id="recording-badge" class="w-2.5 h-2.5 rounded-full bg-slate-500"></div>
-          <span class="hidden md:inline bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent font-black">Vocal Studio</span>
+          <span class="hidden md:inline bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent font-black">Vocal Live</span>
         </div>
 
         <button id="btn-toggle-play" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold transition active:scale-95 shadow-md shadow-blue-950/50">
@@ -138,14 +153,14 @@
           <span id="play-label">Iniciar</span>
         </button>
 
-        <button id="btn-rewind" title="Rebobinar al inicio del tema (R)" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition active:scale-95 border border-slate-700">
+        <button id="btn-rewind" title="Rebobinar al inicio del tema (R o Pedal REV 1 toque)" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition active:scale-95 border border-slate-700">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
         </button>
       </div>
 
       <!-- Selector Rápido de Setlist con Idioma -->
       <div class="flex items-center gap-1 bg-slate-800/90 px-1.5 sm:px-2 py-1 rounded-lg border border-slate-700/80">
-        <button id="btn-prev-song" title="Tema Anterior (Tecla [ o P)" class="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-700 transition">
+        <button id="btn-prev-song" title="Tema Anterior (Doble toque Pedal REV o Tecla [)" class="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-700 transition">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
         </button>
 
@@ -153,7 +168,7 @@
           <!-- Opciones inyectadas dinámicamente -->
         </select>
 
-        <button id="btn-next-song" title="Tema Siguiente (Tecla ] o N)" class="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-700 transition">
+        <button id="btn-next-song" title="Tema Siguiente (Doble toque Pedal FW o Tecla ])" class="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-700 transition">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
         </button>
 
@@ -222,8 +237,7 @@
   </header>
 
   <!-- ================= GUÍA / NOTAS INICIALES DEL CANTANTE (Multilínea Adaptable y Centrada) ================= -->
-  <div id="singer-notes-banner" class="w-full bg-gradient-to-r from-amber-950/85 via-slate-950/95 to-amber-950/85 backdrop-blur border-b border-amber-500/30 text-amber-200 text-xs px-3 sm:px-6 py-2 z-40 relative shadow-md shrink-0 overflow-hidden">
-    <!-- Contenedor alineado al ancho de lectura con ajuste flexible de renglones -->
+  <div id="singer-notes-banner" class="w-full bg-gradient-to-r from-amber-950/85 via-slate-950/95 to-amber-950/85 backdrop-blur border-b border-amber-500/30 text-amber-200 text-xs px-3 sm:px-6 py-2 z-30 relative shadow-md shrink-0 overflow-hidden">
     <div class="max-w-4xl mx-auto flex flex-wrap items-center justify-center text-center gap-1.5 sm:gap-2 px-2 sm:px-12">
       <span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono font-bold text-[10px] tracking-wider uppercase border border-amber-500/40 shrink-0 self-center">
         📌 GUÍA
@@ -233,7 +247,6 @@
       </span>
     </div>
 
-    <!-- Botón discreto a la derecha sin romper el centrado visual -->
     <button id="btn-toggle-notes-view" title="Ocultar o desplegar notas" class="absolute right-2 sm:right-5 top-2 sm:top-1/2 sm:-translate-y-1/2 text-amber-400/80 hover:text-amber-300 text-[10px] sm:text-[11px] underline shrink-0">
       Ocultar
     </button>
@@ -248,26 +261,66 @@
       <span>Mostrar controles</span>
     </button>
 
-    <!-- BANNER AUTO-CUE: Tema siguiente armado y en espera -->
-    <div id="autocue-banner" class="absolute top-4 left-1/2 -translate-x-1/2 z-40 bg-indigo-950/90 border border-indigo-500/80 text-white px-4 sm:px-5 py-2 sm:py-2.5 rounded-2xl shadow-2xl backdrop-blur-md flex items-center gap-2.5 sm:gap-3 transition-all duration-300 opacity-0 -translate-y-4 pointer-events-none max-w-[92vw]">
-      <span class="flex h-3 w-3 relative shrink-0">
-        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-        <span class="relative inline-flex rounded-full h-3 w-3 bg-indigo-500"></span>
-      </span>
-      <div class="text-xs truncate">
-        <span class="text-indigo-300 font-bold uppercase tracking-wider">Listo:</span>
-        <span id="autocue-song-title" class="font-bold text-white ml-1 font-mono">Nombre de la Canción</span>
-        <span class="text-slate-300 ml-1.5 hidden sm:inline">• Presiona <kbd class="px-1.5 py-0.5 bg-slate-800 border border-slate-700 rounded text-sky-300 font-bold">ESPACIO</kbd></span>
+    <!-- ================= MODAL DEL CARTEL DE 20 SEGUNDOS (CONTROL DUAL TÁCTIL / ESCENARIO) ================= -->
+    <div id="countdown-20s-modal" class="absolute inset-0 bg-black/90 backdrop-blur-md z-40 flex items-center justify-center p-4 hidden transition-all duration-300">
+      <div class="max-w-xl w-full bg-slate-900/95 border-2 border-indigo-500/70 rounded-3xl p-6 sm:p-8 flex flex-col items-center text-center shadow-[0_0_50px_rgba(99,102,241,0.25)]">
+        
+        <!-- Estado de la transición -->
+        <span class="px-3 py-1 rounded-full bg-indigo-950 border border-indigo-500/40 text-indigo-300 text-xs font-mono font-bold tracking-widest uppercase mb-3">
+          Transición entre temas
+        </span>
+
+        <!-- Tarjeta del Próximo Tema (Táctil: Al tocarla pasa de inmediato) -->
+        <div id="next-song-card" role="button" title="Toca para arrancar ahora mismo este tema" class="w-full bg-slate-950/80 border border-slate-700 hover:border-indigo-400 p-4 rounded-2xl cursor-pointer transition active:scale-95 group mb-5">
+          <div class="text-[11px] text-slate-400 uppercase font-mono tracking-wider mb-1">A continuación (Toca para iniciar ya):</div>
+          <div id="c20-song-title" class="text-lg sm:text-xl font-black text-white group-hover:text-indigo-300 transition truncate">
+            Nombre del Tema Siguiente
+          </div>
+        </div>
+
+        <!-- Reloj Gigante de 20 segundos -->
+        <div class="relative flex items-center justify-center my-2">
+          <div id="c20-timer-number" class="text-7xl sm:text-8xl font-black font-mono text-indigo-400 tracking-tight drop-shadow-[0_0_25px_rgba(99,102,241,0.6)]">
+            20s
+          </div>
+        </div>
+
+        <p id="c20-timer-status" class="text-xs sm:text-sm text-slate-400 mt-1 mb-6 font-medium">
+          El tema arrancará automáticamente cuando el reloj llegue a cero.
+        </p>
+
+        <!-- Dos Botones Gigantes de Alto Contraste para la Mano (Táctil) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 w-full">
+          <!-- Botón 1: Pausar / Reanudar cuenta -->
+          <button id="btn-c20-pause-resume" class="w-full py-4 px-5 rounded-2xl bg-amber-600 hover:bg-amber-500 active:scale-95 text-white font-black text-sm sm:text-base flex items-center justify-center gap-2 shadow-lg shadow-amber-950/50 transition">
+            <span id="c20-pause-icon">⏸</span>
+            <span id="c20-pause-label">Pausar cuenta</span>
+          </button>
+
+          <!-- Botón 2: Regresar al tema anterior recién finalizado -->
+          <button id="btn-c20-back-prev" class="w-full py-4 px-5 rounded-2xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 border border-slate-700 font-bold text-sm sm:text-base flex items-center justify-center gap-2 shadow-lg transition">
+            <span>⏮</span>
+            <span>Volver al anterior</span>
+          </button>
+        </div>
+
+        <!-- Pistas para el pie (Pedal Bluetooth) -->
+        <div class="mt-5 text-[11px] text-slate-500 font-mono flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+          <span>Pedal FW (1 toque): Pausar/Reanudar</span>
+          <span>Pedal FW (2 toques): Iniciar ya</span>
+          <span>Pedal REV (1 toque): Volver atrás</span>
+        </div>
+
       </div>
     </div>
 
     <!-- Indicador Flotante de Posición al Arrastrar la Línea -->
-    <div id="drag-indicator" class="absolute left-1/2 -translate-x-1/2 z-50 bg-blue-600 text-white text-[11px] font-mono font-bold px-3 py-1 rounded-full shadow-2xl transition-opacity duration-150 opacity-0 pointer-events-none">
+    <div id="drag-indicator" class="absolute left-1/2 -translate-x-1/2 z-40 bg-blue-600 text-white text-[11px] font-mono font-bold px-3 py-1 rounded-full shadow-2xl transition-opacity duration-150 opacity-0 pointer-events-none">
       Línea de lectura: 30%
     </div>
 
     <!-- Flechas y Franja Guía Focal Central (Interactiva y Arrastrable con el dedo o mouse) -->
-    <div id="guide-overlay" class="absolute left-0 right-0 z-30 flex items-center justify-between px-1.5 sm:px-8 transition-[top] duration-75" style="top: 30%;">
+    <div id="guide-overlay" class="absolute left-0 right-0 z-20 flex items-center justify-between px-1.5 sm:px-8 transition-[top] duration-75" style="top: 30%;">
       
       <!-- Agarradera izquierda para arrastrar con el dedo -->
       <div id="handle-left" class="guide-drag-handle flex items-center gap-1.5 sm:gap-2 p-2 group" title="Arrastra hacia arriba o abajo para mover la línea de lectura">
@@ -308,7 +361,7 @@
     </div>
 
     <!-- Cuenta regresiva flotante (3, 2, 1, ¡Al Aire!) -->
-    <div id="countdown-modal" class="absolute inset-0 bg-black/80 backdrop-blur-sm z-40 flex items-center justify-center hidden pointer-events-none">
+    <div id="countdown-modal" class="absolute inset-0 bg-black/80 backdrop-blur-sm z-30 flex items-center justify-center hidden pointer-events-none">
       <div class="text-center">
         <div id="countdown-number" class="text-8xl sm:text-9xl font-black text-blue-400 animate-bounce tracking-tighter drop-shadow-[0_0_35px_rgba(37,99,235,0.8)]">3</div>
         <p class="text-lg sm:text-xl font-medium text-slate-300 mt-4 tracking-widest uppercase">Escuchando micrófono...</p>
@@ -316,7 +369,7 @@
     </div>
 
     <!-- Miniatura de Cámara Web Flotante -->
-    <div id="webcam-box" class="absolute bottom-16 sm:bottom-6 right-4 sm:right-6 w-44 sm:w-56 h-32 sm:h-40 bg-slate-900 border-2 border-blue-500 rounded-xl overflow-hidden shadow-2xl z-40 hidden flex-col">
+    <div id="webcam-box" class="absolute bottom-16 sm:bottom-6 right-4 sm:right-6 w-44 sm:w-56 h-32 sm:h-40 bg-slate-900 border-2 border-blue-500 rounded-xl overflow-hidden shadow-2xl z-30 hidden flex-col">
       <div class="bg-slate-950 px-2.5 py-1 text-[11px] font-mono flex items-center justify-between text-slate-400 border-b border-slate-800">
         <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span> Vista Cámara</span>
         <button id="btn-close-webcam" class="hover:text-white">&times;</button>
@@ -456,7 +509,7 @@
       <div class="px-4 sm:px-6 py-2.5 bg-slate-950 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
         <span class="flex items-center gap-1.5 truncate mr-2">
           <span class="w-2 h-2 rounded-full bg-amber-400 shrink-0"></span>
-          <span class="truncate">La guía aparece fija al inicio y se repliega cuando empezás a cantar.</span>
+          <span class="truncate">Compatible nativamente con pedales Bluetooth (FW / REV) con ventana de 500 ms.</span>
         </span>
         <button id="btn-finish-modal" class="text-slate-300 hover:text-white font-semibold shrink-0">Cerrar</button>
       </div>
@@ -476,7 +529,7 @@
     const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     const isAndroid = /Android/i.test(navigator.userAgent);
 
-    // Repertorio inicial con notas técnicas de inicio
+    // Repertorio inicial
     const INITIAL_SETLIST = [
       {
         id: "song_1",
@@ -536,7 +589,7 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       }
     ];
 
-    // Estado central de la aplicación (Línea de lectura iniciada en 30% más arriba)
+    // Estado central de la aplicación
     const state = {
       setlist: [...INITIAL_SETLIST],
       currentSongIndex: 0,
@@ -547,13 +600,20 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       fontSize: 42,
       mirrorH: false,
       mirrorV: false,
-      guidePosition: 30,
+      guidePosition: 30, // Posición por defecto en el tercio superior (30%)
       scrollPos: 0,
       animId: null,
       webcamStream: null,
       currentWordIndex: 0,
       isSongFinished: false,
       isNotesCollapsed: false,
+      
+      // Estado para la transición de 20s
+      isTransitionActive: false,
+      transitionSecondsRemaining: 20,
+      transitionPaused: false,
+      transitionTimerId: null,
+      previousSongIndex: null,
     };
 
     let wordObjects = [];
@@ -595,9 +655,24 @@ Quédense con nosotros porque comenzamos ahora mismo.`
     const dragIndicator = document.getElementById('drag-indicator');
     const countdownModal = document.getElementById('countdown-modal');
     const countdownNumber = document.getElementById('countdown-number');
-    const autocueBanner = document.getElementById('autocue-banner');
-    const autocueSongTitle = document.getElementById('autocue-song-title');
     const toast = document.getElementById('toast');
+
+    // Referencias del HUD de Escenario y Feedback Óptico
+    const pedalFlashOverlay = document.getElementById('pedal-flash-overlay');
+    const pedalHud = document.getElementById('pedal-hud');
+    const hudIcon = document.getElementById('hud-icon');
+    const hudText = document.getElementById('hud-text');
+
+    // Referencias del Modal de 20 Segundos (Transición entre temas)
+    const countdown20sModal = document.getElementById('countdown-20s-modal');
+    const nextSongCard = document.getElementById('next-song-card');
+    const c20SongTitle = document.getElementById('c20-song-title');
+    const c20TimerNumber = document.getElementById('c20-timer-number');
+    const c20TimerStatus = document.getElementById('c20-timer-status');
+    const btnC20PauseResume = document.getElementById('btn-c20-pause-resume');
+    const c20PauseIcon = document.getElementById('c20-pause-icon');
+    const c20PauseLabel = document.getElementById('c20-pause-label');
+    const btnC20BackPrev = document.getElementById('btn-c20-back-prev');
 
     // Referencias de la Franja de Notas del Cantante
     const singerNotesBanner = document.getElementById('singer-notes-banner');
@@ -627,6 +702,7 @@ Quédense con nosotros porque comenzamos ahora mismo.`
 
     let editingSongId = null;
 
+    // Toast flotante
     function showToast(msg) {
       toast.textContent = msg;
       toast.classList.remove('opacity-0', '-translate-y-2');
@@ -634,7 +710,60 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       setTimeout(() => {
         toast.classList.remove('opacity-100', 'translate-y-0');
         toast.classList.add('opacity-0', '-translate-y-2');
-      }, 2500);
+      }, 2400);
+    }
+
+    // ================= FEEDBACK ÓPTICO DE ESCENARIO (HUD) =================
+    let hudTimeout = null;
+
+    function triggerPedalFeedback(actionType, labelText) {
+      // 1. Destello perimetral en los bordes de la pantalla
+      let borderColor = 'border-blue-500';
+      let icon = '▶';
+
+      switch (actionType) {
+        case 'play':
+          borderColor = 'border-emerald-500 shadow-[inset_0_0_40px_rgba(16,185,129,0.3)]';
+          icon = '▶';
+          break;
+        case 'pause':
+          borderColor = 'border-amber-500 shadow-[inset_0_0_40px_rgba(245,158,11,0.3)]';
+          icon = '⏸';
+          break;
+        case 'next':
+          borderColor = 'border-sky-500 shadow-[inset_0_0_40px_rgba(14,165,233,0.4)]';
+          icon = '⏭';
+          break;
+        case 'prev':
+        case 'rewind':
+          borderColor = 'border-purple-500 shadow-[inset_0_0_40px_rgba(168,85,247,0.4)]';
+          icon = '⏮';
+          break;
+        case 'forward_hold':
+          borderColor = 'border-sky-400 shadow-[inset_0_0_30px_rgba(56,189,248,0.2)]';
+          icon = '⏩';
+          break;
+        case 'rewind_hold':
+          borderColor = 'border-purple-400 shadow-[inset_0_0_30px_rgba(192,132,252,0.2)]';
+          icon = '⏪';
+          break;
+      }
+
+      pedalFlashOverlay.className = `absolute inset-0 z-50 border-[8px] pointer-events-none transition-all duration-300 opacity-100 ${borderColor}`;
+      
+      // 2. HUD Central visible a distancia
+      hudIcon.textContent = icon;
+      hudText.textContent = labelText || '';
+      pedalHud.classList.remove('opacity-0', 'scale-90');
+      pedalHud.classList.add('opacity-100', 'scale-100');
+
+      clearTimeout(hudTimeout);
+      hudTimeout = setTimeout(() => {
+        pedalFlashOverlay.classList.remove('opacity-100');
+        pedalFlashOverlay.classList.add('opacity-0');
+        pedalHud.classList.remove('opacity-100', 'scale-100');
+        pedalHud.classList.add('opacity-0', 'scale-90');
+      }, 500);
     }
 
     // ================= CONTROL DE LA FRANJA DE NOTAS DEL CANTANTE =================
@@ -895,6 +1024,7 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       const progress = (state.currentWordIndex / (wordObjects.length - 1)) * 100;
       progressBar.style.width = `${Math.min(100, Math.max(0, progress))}%`;
 
+      // Al cantar la última palabra, se dispara la transición de 20s
       if (state.currentWordIndex >= wordObjects.length - 1 && !state.isSongFinished) {
         state.isSongFinished = true;
         handleSongFinished();
@@ -912,30 +1042,110 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       });
     }
 
-    // ================= AUTO-CUE: AVANCE ENTRE CANCIONES =================
+    // ================= TRANSIÓN DE 20 SEGUNDOS ENTRE TEMAS (ESCENARIO + TÁCTIL) =================
+    
     function handleSongFinished() {
+      // Si hay un siguiente tema en la lista
       if (state.currentSongIndex < state.setlist.length - 1) {
         setTimeout(() => {
           stopPrompter();
-          const nextIndex = state.currentSongIndex + 1;
-          changeSong(nextIndex, false);
-
-          autocueSongTitle.textContent = state.setlist[nextIndex].title;
-          autocueBanner.classList.remove('opacity-0', '-translate-y-4');
-          autocueBanner.classList.add('opacity-100', 'translate-y-0');
-
-          showToast('Siguiente tema armado. Presiona Iniciar o Espacio');
-        }, 1200);
+          state.previousSongIndex = state.currentSongIndex;
+          open20sTransition(state.currentSongIndex + 1);
+        }, 1000);
       } else {
         showToast('¡Has llegado al final del repertorio!');
         stopPrompter();
+        triggerPedalFeedback('pause', 'Fin del Setlist');
       }
     }
 
-    function hideAutoCueBanner() {
-      autocueBanner.classList.remove('opacity-100', 'translate-y-0');
-      autocueBanner.classList.add('opacity-0', '-translate-y-4');
+    function open20sTransition(nextIndex) {
+      state.isTransitionActive = true;
+      state.transitionSecondsRemaining = 20;
+      state.transitionPaused = false;
+      
+      const nextSong = state.setlist[nextIndex];
+      c20SongTitle.textContent = nextSong ? nextSong.title : 'Siguiente Tema';
+      update20sTimerUI();
+
+      countdown20sModal.classList.remove('hidden');
+      triggerPedalFeedback('next', 'Próximo Tema: 20s');
+
+      start20sInterval(nextIndex);
     }
+
+    function start20sInterval(nextIndex) {
+      clearInterval(state.transitionTimerId);
+      state.transitionTimerId = setInterval(() => {
+        if (!state.transitionPaused) {
+          state.transitionSecondsRemaining--;
+          update20sTimerUI();
+
+          if (state.transitionSecondsRemaining <= 0) {
+            clearInterval(state.transitionTimerId);
+            close20sTransition();
+            changeSong(nextIndex, true); // Arranca automáticamente el siguiente
+          }
+        }
+      }, 1000);
+    }
+
+    function update20sTimerUI() {
+      c20TimerNumber.textContent = `${state.transitionSecondsRemaining}s`;
+      if (state.transitionPaused) {
+        c20TimerNumber.classList.replace('text-indigo-400', 'text-amber-400');
+        c20TimerStatus.textContent = 'Reloj pausado • Habla con el público tranquilo';
+        c20PauseIcon.textContent = '▶';
+        c20PauseLabel.textContent = `Reanudar cuenta (${state.transitionSecondsRemaining}s)`;
+        btnC20PauseResume.classList.replace('bg-amber-600', 'bg-emerald-600');
+        btnC20PauseResume.classList.replace('hover:bg-amber-500', 'hover:bg-emerald-500');
+      } else {
+        c20TimerNumber.classList.replace('text-amber-400', 'text-indigo-400');
+        c20TimerStatus.textContent = 'El tema arrancará automáticamente cuando el reloj llegue a cero.';
+        c20PauseIcon.textContent = '⏸';
+        c20PauseLabel.textContent = `Pausar cuenta (${state.transitionSecondsRemaining}s)`;
+        btnC20PauseResume.classList.replace('bg-emerald-600', 'bg-amber-600');
+        btnC20PauseResume.classList.replace('hover:bg-emerald-500', 'hover:bg-amber-500');
+      }
+    }
+
+    function toggle20sPauseResume() {
+      state.transitionPaused = !state.transitionPaused;
+      update20sTimerUI();
+      if (state.transitionPaused) {
+        triggerPedalFeedback('pause', 'Reloj Pausado');
+      } else {
+        triggerPedalFeedback('play', 'Reloj Reanudado');
+      }
+    }
+
+    function returnToPreviousSong() {
+      clearInterval(state.transitionTimerId);
+      close20sTransition();
+      const prevIdx = state.previousSongIndex !== null ? state.previousSongIndex : Math.max(0, state.currentSongIndex - 1);
+      changeSong(prevIdx, false);
+      triggerPedalFeedback('prev', 'Regresar al Anterior');
+      showToast('Regresando al tema anterior');
+    }
+
+    function forceStartNextSongNow() {
+      clearInterval(state.transitionTimerId);
+      close20sTransition();
+      const nextIdx = Math.min(state.setlist.length - 1, state.currentSongIndex + 1);
+      changeSong(nextIdx, true);
+      triggerPedalFeedback('next', 'Tema Iniciado');
+    }
+
+    function close20sTransition() {
+      state.isTransitionActive = false;
+      clearInterval(state.transitionTimerId);
+      countdown20sModal.classList.add('hidden');
+    }
+
+    // Eventos táctiles del modal de 20s
+    btnC20PauseResume.addEventListener('click', toggle20sPauseResume);
+    btnC20BackPrev.addEventListener('click', returnToPreviousSong);
+    nextSongCard.addEventListener('click', forceStartNextSongNow);
 
     function changeSong(index, shouldStart = false) {
       if (index < 0 || index >= state.setlist.length) return;
@@ -976,20 +1186,17 @@ Quédense con nosotros porque comenzamos ahora mismo.`
 
     selectActiveSong.addEventListener('change', (e) => {
       changeSong(parseInt(e.target.value), false);
-      hideAutoCueBanner();
     });
 
     btnPrevSong.addEventListener('click', () => {
       if (state.currentSongIndex > 0) {
         changeSong(state.currentSongIndex - 1, false);
-        hideAutoCueBanner();
       }
     });
 
     btnNextSong.addEventListener('click', () => {
       if (state.currentSongIndex < state.setlist.length - 1) {
         changeSong(state.currentSongIndex + 1, false);
-        hideAutoCueBanner();
       }
     });
 
@@ -1137,7 +1344,6 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       renderCurrentSong();
       rewind();
       closeSetlistManager();
-      hideAutoCueBanner();
       showToast('Tema cargado');
     });
 
@@ -1417,7 +1623,6 @@ Quédense con nosotros porque comenzamos ahora mismo.`
 
     function startPrompter() {
       state.isPlaying = true;
-      hideAutoCueBanner();
 
       playIcon.classList.add('hidden');
       pauseIcon.classList.remove('hidden');
@@ -1457,7 +1662,9 @@ Quédense con nosotros porque comenzamos ahora mismo.`
     function togglePlay() {
       if (state.isPlaying) {
         stopPrompter();
+        triggerPedalFeedback('pause', 'Pausa');
       } else {
+        triggerPedalFeedback('play', 'Iniciar');
         if (state.currentWordIndex === 0) {
           triggerCountdown(() => startPrompter());
         } else {
@@ -1495,8 +1702,10 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       scrollWrapper.scrollTo({ top: 0, behavior: 'smooth' });
       progressBar.style.width = '0%';
       showToast('Rebobinado al inicio');
+      triggerPedalFeedback('rewind', 'Inicio del tema');
     }
 
+    // Saltar palabra con toque en pantalla
     teleprompterContent.addEventListener('click', (e) => {
       const wordEl = e.target.closest('.prompter-word');
       if (wordEl && wordEl.dataset.index) {
@@ -1546,14 +1755,6 @@ Quédense con nosotros porque comenzamos ahora mismo.`
     btnMirrorV.addEventListener('click', () => {
       state.mirrorV = !state.mirrorV;
       updateTransformations();
-    });
-
-    guidePosSlider.addEventListener('input', (e) => {
-      state.guidePosition = parseInt(e.target.value);
-      guideOverlay.style.top = `${state.guidePosition}%`;
-      const topSpacer = document.getElementById('top-spacer');
-      if (topSpacer) topSpacer.style.height = `${state.guidePosition}vh`;
-      highlightWords(state.currentWordIndex);
     });
 
     btnWebcam.addEventListener('click', async () => {
@@ -1617,34 +1818,217 @@ Quédense con nosotros porque comenzamos ahora mismo.`
     btnTogglePlay.addEventListener('click', togglePlay);
     btnRewind.addEventListener('click', rewind);
 
+    // ================= MOTOR DE CONTROL DE PEDALES BLUETOOTH (CALIBRACIÓN 500MS & HOLD) =================
+    
+    const FW_KEYS = new Set(['Space', 'Enter', 'PageDown', 'ArrowDown', 'ArrowRight']);
+    const REV_KEYS = new Set(['PageUp', 'ArrowUp', 'ArrowLeft', 'Backspace']);
+
+    let fwClickTimer = null;
+    let fwClickCount = 0;
+    let fwHoldTimer = null;
+    let isFwHolding = false;
+    let fwHoldInterval = null;
+
+    let revClickTimer = null;
+    let revClickCount = 0;
+    let revHoldTimer = null;
+    let isRevHolding = false;
+    let revHoldInterval = null;
+
+    // Escucha de Keydown (Pulsación y detección de Hold)
     window.addEventListener('keydown', (e) => {
+      // Ignorar si el modal de edición de repertorio está abierto
       if (!setlistModal.classList.contains('hidden')) return;
 
-      if (e.code === 'Space') {
+      const code = e.code;
+
+      // 1. CANAL FW (ADELANTE / PAUSA / SALTO SIGUIENTE)
+      if (FW_KEYS.has(code)) {
         e.preventDefault();
-        togglePlay();
-      } else if (e.code === 'ArrowUp') {
+        if (e.repeat) return; // Evitar repeticiones automáticas del SO
+
+        // Iniciar temporizador para detectar Hold (>450ms)
+        clearTimeout(fwHoldTimer);
+        fwHoldTimer = setTimeout(() => {
+          isFwHolding = true;
+          clearTimeout(fwClickTimer); // Cancelar clic simple/doble
+          fwClickCount = 0;
+          startFwHoldScroll();
+        }, 450);
+      }
+
+      // 2. CANAL REV (ATRÁS / REBOBINAR / TEMA ANTERIOR)
+      else if (REV_KEYS.has(code)) {
         e.preventDefault();
-        setSpeed(state.speed + 0.3);
-      } else if (e.code === 'ArrowDown') {
-        e.preventDefault();
-        setSpeed(state.speed - 0.3);
-      } else if (e.key === 'r' || e.key === 'R') {
+        if (e.repeat) return;
+
+        clearTimeout(revHoldTimer);
+        revHoldTimer = setTimeout(() => {
+          isRevHolding = true;
+          clearTimeout(revClickTimer);
+          revClickCount = 0;
+          startRevHoldScroll();
+        }, 450);
+      }
+
+      // Atajos auxiliares por teclado
+      else if (e.key === 'r' || e.key === 'R') {
         rewind();
       } else if (e.key === 'v' || e.key === 'V') {
         setVoiceMode(!state.isVoiceMode);
       } else if (e.key === 'm' || e.key === 'M') {
         state.mirrorH = !state.mirrorH;
         updateTransformations();
-      } else if (e.key === '[' || e.key === 'p' || e.key === 'P') {
-        btnPrevSong.click();
-      } else if (e.key === ']' || e.key === 'n' || e.key === 'N') {
-        btnNextSong.click();
       } else if (e.key === 'f' || e.key === 'F') {
         toggleFullScreen();
       }
     });
 
+    // Escucha de Keyup (Fin de pulsación o descarte de Hold)
+    window.addEventListener('keyup', (e) => {
+      if (!setlistModal.classList.contains('hidden')) return;
+
+      const code = e.code;
+
+      // ================= CANAL FW LEVANTADO =================
+      if (FW_KEYS.has(code)) {
+        e.preventDefault();
+        clearTimeout(fwHoldTimer);
+
+        if (isFwHolding) {
+          // Si venía de mantener pisado, frenar avance y no disparar clics
+          stopFwHoldScroll();
+          isFwHolding = false;
+          return;
+        }
+
+        // Si fue una pisada corta, procesar con ventana de 500 ms para doble pisada
+        fwClickCount++;
+
+        if (fwClickCount === 1) {
+          clearTimeout(fwClickTimer);
+          fwClickTimer = setTimeout(() => {
+            // Acción Simple FW (1 pisada)
+            handleFwSingleTap();
+            fwClickCount = 0;
+          }, 500); // 500 ms exactos calibrados para el pie
+        } else if (fwClickCount === 2) {
+          clearTimeout(fwClickTimer);
+          fwClickCount = 0;
+          // Acción Doble FW (2 pisadas)
+          handleFwDoubleTap();
+        }
+      }
+
+      // ================= CANAL REV LEVANTADO =================
+      else if (REV_KEYS.has(code)) {
+        e.preventDefault();
+        clearTimeout(revHoldTimer);
+
+        if (isRevHolding) {
+          stopRevHoldScroll();
+          isRevHolding = false;
+          return;
+        }
+
+        revClickCount++;
+
+        if (revClickCount === 1) {
+          clearTimeout(revClickTimer);
+          revClickTimer = setTimeout(() => {
+            handleRevSingleTap();
+            revClickCount = 0;
+          }, 500); // 500 ms exactos
+        } else if (revClickCount === 2) {
+          clearTimeout(revClickTimer);
+          revClickCount = 0;
+          handleRevDoubleTap();
+        }
+      }
+    });
+
+    // --- ACCIONES ESPECÍFICAS DE CADA PISADA ---
+
+    // 1 Toque FW: Pausa/Reanuda canción o reloj de 20s
+    function handleFwSingleTap() {
+      if (state.isTransitionActive) {
+        toggle20sPauseResume();
+      } else {
+        togglePlay();
+      }
+    }
+
+    // 2 Toques FW (~500ms): Salto inmediato de tema
+    function handleFwDoubleTap() {
+      if (state.isTransitionActive) {
+        forceStartNextSongNow();
+      } else {
+        if (state.currentSongIndex < state.setlist.length - 1) {
+          triggerPedalFeedback('next', 'Siguiente Tema');
+          changeSong(state.currentSongIndex + 1, false);
+          showToast('Siguiente tema cargado');
+        } else {
+          showToast('Estás en el último tema');
+        }
+      }
+    }
+
+    // 1 Toque REV: En canción va al inicio (cero); en 20s vuelve al anterior
+    function handleRevSingleTap() {
+      if (state.isTransitionActive) {
+        returnToPreviousSong();
+      } else {
+        rewind();
+      }
+    }
+
+    // 2 Toques REV (~500ms): Salto directo al tema anterior del repertorio
+    function handleRevDoubleTap() {
+      if (state.isTransitionActive) {
+        returnToPreviousSong();
+      } else {
+        if (state.currentSongIndex > 0) {
+          triggerPedalFeedback('prev', 'Tema Anterior');
+          changeSong(state.currentSongIndex - 1, false);
+          showToast('Tema anterior cargado');
+        } else {
+          rewind();
+        }
+      }
+    }
+
+    // --- MODO HOLD: AVANCE Y REBOBINADO CONTINUO ---
+    function startFwHoldScroll() {
+      triggerPedalFeedback('forward_hold', 'Avance Continuo');
+      clearInterval(fwHoldInterval);
+      fwHoldInterval = setInterval(() => {
+        if (wordObjects.length > 0 && state.currentWordIndex < wordObjects.length - 1) {
+          highlightWords(state.currentWordIndex + 1);
+        }
+      }, 180); // Avance de ~5 palabras por segundo
+    }
+
+    function stopFwHoldScroll() {
+      clearInterval(fwHoldInterval);
+      triggerPedalFeedback('pause', 'Detenido');
+    }
+
+    function startRevHoldScroll() {
+      triggerPedalFeedback('rewind_hold', 'Retroceso Continuo');
+      clearInterval(revHoldInterval);
+      revHoldInterval = setInterval(() => {
+        if (wordObjects.length > 0 && state.currentWordIndex > 0) {
+          highlightWords(state.currentWordIndex - 1);
+        }
+      }, 180);
+    }
+
+    function stopRevHoldScroll() {
+      clearInterval(revHoldInterval);
+      triggerPedalFeedback('pause', 'Detenido');
+    }
+
+    // Carga inicial
     window.addEventListener('DOMContentLoaded', () => {
       renderCurrentSong();
       initSpeechRecognition();
