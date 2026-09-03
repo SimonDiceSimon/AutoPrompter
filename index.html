@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Teleprompter Pro Studio con Repertorio y Reconocimiento de Voz</title>
+  <title>Teleprompter Pro Studio - Edición Cantantes</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -24,13 +24,13 @@
     }
   </script>
   <style>
-    /* Soporte para altura dinámica en navegadores móviles */
+    /* Soporte de altura dinámica para móviles (iOS/Android) */
     .app-height {
       height: 100vh;
       height: 100dvh;
     }
 
-    /* Ocultar barra de desplazamiento manteniendo la funcionalidad */
+    /* Ocultar barra de desplazamiento manteniendo funcionalidad */
     .no-scrollbar::-webkit-scrollbar {
       display: none;
     }
@@ -39,7 +39,7 @@
       scrollbar-width: none;
     }
 
-    /* Transformaciones de Espejo */
+    /* Transformaciones de Espejo Óptico */
     .flip-x {
       transform: scaleX(-1);
     }
@@ -50,12 +50,12 @@
       transform: scale(-1, -1);
     }
 
-    /* Transición suave para guías */
+    /* Resplandor suave en la franja de lectura */
     .reading-glow {
       box-shadow: 0 0 30px rgba(37, 99, 235, 0.3);
     }
 
-    /* Estilos dinámicos de las palabras con tamaño y peso 100% estables */
+    /* Estilos dinámicos de las palabras con tamaño 100% fijo */
     .prompter-word {
       font-weight: inherit;
       font-size: inherit;
@@ -64,29 +64,47 @@
       transition: color 0.12s ease, opacity 0.12s ease;
     }
 
-    /* 1. Texto que está por venir (Aún no leído): Blanco nítido */
+    /* 1. Texto por venir (Aún no cantado): Blanco nítido */
     .word-upcoming {
       color: #ffffff !important;
       opacity: 0.95;
       text-shadow: none;
     }
 
-    /* 2. Palabra activa (la que estás diciendo o cantando): Azul iluminado en foco */
+    /* 2. Palabra activa (la que estás cantando en este instante): Azul focal iluminado */
     .word-active {
       color: #3b82f6 !important;
       opacity: 1;
       text-shadow: 0 0 14px rgba(59, 130, 246, 0.85);
     }
 
-    /* 3. Texto que ya pasó (ya leído): Azul consolidado */
+    /* 3. Texto que ya pasó (ya cantado): Azul consolidado */
     .word-passed {
       color: #2563eb !important;
       opacity: 0.75;
       text-shadow: none;
     }
 
+    /* Transición suave para la Guía Inicial del Cantante */
+    #singer-notes-banner {
+      transition: max-height 0.45s cubic-bezier(0.4, 0, 0.2, 1), 
+                  opacity 0.35s ease, 
+                  padding 0.35s ease, 
+                  border-color 0.35s ease;
+      max-height: 90px;
+    }
+    #singer-notes-banner.banner-collapsed {
+      max-height: 0 !important;
+      opacity: 0 !important;
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
+      border-bottom-width: 0 !important;
+      pointer-events: none;
+    }
+
     /* Modo Enfoque / Pantalla Completa para iPhone */
     body.focus-mode #main-header,
+    body.focus-mode #singer-notes-banner,
     body.focus-mode #stats-panel {
       display: none !important;
     }
@@ -98,14 +116,14 @@
 <body class="app-height flex flex-col select-none overflow-hidden font-sans bg-black pb-[env(safe-area-inset-bottom)]">
 
   <!-- ================= BARRA DE CONTROL SUPERIOR ================= -->
-  <header id="main-header" class="bg-slate-900/95 backdrop-blur border-b border-slate-800 z-50 transition-all duration-300 pt-[env(safe-area-inset-top)]">
+  <header id="main-header" class="bg-slate-900/95 backdrop-blur border-b border-slate-800 z-50 transition-all duration-300 pt-[env(safe-area-inset-top)] shrink-0">
     <div class="max-w-7xl mx-auto px-3 sm:px-4 py-2 flex flex-wrap items-center justify-between gap-2 text-xs sm:text-sm">
       
       <!-- Controles de Reproducción y Estado -->
       <div class="flex items-center gap-1.5 sm:gap-2">
         <div class="flex items-center gap-1.5 font-bold tracking-wider text-slate-100 uppercase mr-1">
           <div id="recording-badge" class="w-2.5 h-2.5 rounded-full bg-slate-500"></div>
-          <span class="hidden md:inline bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent font-black">Studio</span>
+          <span class="hidden md:inline bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent font-black">Vocal Studio</span>
         </div>
 
         <button id="btn-toggle-play" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold transition active:scale-95 shadow-md shadow-blue-950/50">
@@ -119,22 +137,22 @@
         </button>
       </div>
 
-      <!-- Selector Rápido de Setlist / Playlist en Vivo con Selector de Idioma -->
+      <!-- Selector Rápido de Setlist con Idioma -->
       <div class="flex items-center gap-1 bg-slate-800/90 px-1.5 sm:px-2 py-1 rounded-lg border border-slate-700/80">
         <button id="btn-prev-song" title="Tema Anterior (Tecla [ o P)" class="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-700 transition">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
         </button>
 
         <select id="select-active-song" class="bg-slate-900 text-slate-200 text-xs font-semibold px-2 py-1 rounded border border-slate-700 focus:outline-none focus:border-blue-500 max-w-[120px] sm:max-w-[200px] truncate cursor-pointer">
-          <!-- Opciones de canciones inyectadas dinámicamente -->
+          <!-- Opciones inyectadas dinámicamente -->
         </select>
 
         <button id="btn-next-song" title="Tema Siguiente (Tecla ] o N)" class="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-700 transition">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
         </button>
 
-        <!-- Botón Conmutador Rápido de Idioma del Tema (ES / EN) -->
-        <button id="btn-quick-lang" title="Cambiar idioma de reconocimiento para este tema" class="ml-0.5 px-1.5 py-0.5 rounded bg-blue-950 border border-blue-500/50 text-sky-300 hover:bg-blue-900 font-mono font-bold text-[11px] transition">
+        <!-- Conmutador Rápido de Idioma del Tema (ES / EN) -->
+        <button id="btn-quick-lang" title="Alternar idioma de escucha para esta canción" class="ml-0.5 px-1.5 py-0.5 rounded bg-blue-950 border border-blue-500/50 text-sky-300 hover:bg-blue-900 font-mono font-bold text-[11px] transition">
           ES
         </button>
 
@@ -146,7 +164,7 @@
 
       <!-- Modo de Seguimiento por Voz y Velocidad -->
       <div class="flex items-center flex-wrap gap-1.5 sm:gap-3">
-        <!-- Modo Voz -->
+        <!-- Botón Modo Voz -->
         <button id="btn-toggle-voice" class="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-blue-600 text-white border border-blue-400/40 font-semibold shadow-md shadow-blue-950/50 transition active:scale-95 text-xs">
           <span id="mic-icon-wrapper" class="relative flex h-2.5 w-2.5">
             <span id="mic-ping" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-300 opacity-75"></span>
@@ -156,7 +174,7 @@
           <span class="xs:hidden">Voz</span>
         </button>
 
-        <!-- Velocidad (Para modo continuo) -->
+        <!-- Velocidad de respaldo -->
         <div id="speed-box" class="flex items-center gap-1 bg-slate-800/80 px-2 py-1 rounded-lg border border-slate-700/60 text-xs">
           <span class="text-slate-400">Vel:</span>
           <button id="btn-speed-down" class="w-5 h-5 flex items-center justify-center rounded bg-slate-700 hover:bg-slate-600 text-white font-bold">-</button>
@@ -173,7 +191,7 @@
         </div>
       </div>
 
-      <!-- Herramientas Extras (Espejo, Webcam, Fullscreen) -->
+      <!-- Herramientas Extras -->
       <div class="flex items-center gap-1">
         <button id="btn-mirror-h" title="Invertir Horizontal (M)" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-mono text-xs transition">
           ↔
@@ -191,11 +209,27 @@
 
     </div>
 
-    <!-- Barra de progreso continua superior -->
+    <!-- Barra de progreso superior -->
     <div class="w-full bg-slate-800 h-1">
       <div id="progress-bar" class="bg-gradient-to-r from-blue-500 via-sky-400 to-indigo-500 h-full w-0 transition-all duration-150"></div>
     </div>
   </header>
+
+  <!-- ================= GUÍA / NOTAS INICIALES DEL CANTANTE (Franja Fija Híbrida) ================= -->
+  <div id="singer-notes-banner" class="w-full bg-gradient-to-r from-amber-950/80 via-slate-950/90 to-amber-950/80 backdrop-blur border-b border-amber-500/30 text-amber-200 text-xs px-4 py-2 z-40 flex items-center justify-between gap-3 shadow-md shrink-0 overflow-hidden">
+    <div class="flex items-center gap-2 truncate max-w-full">
+      <span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono font-bold text-[10px] tracking-wider uppercase border border-amber-500/40 shrink-0">
+        📌 GUÍA
+      </span>
+      <span id="singer-notes-text" class="truncate font-medium text-slate-200 text-xs sm:text-[13px]">
+        Cargando notas iniciales...
+      </span>
+    </div>
+
+    <button id="btn-toggle-notes-view" title="Ocultar o desplegar notas" class="text-amber-400/80 hover:text-amber-300 text-[11px] underline shrink-0 hidden sm:inline">
+      Ocultar
+    </button>
+  </div>
 
   <!-- ================= CUERPO PRINCIPAL / ÁREA DE LECTURA ================= -->
   <main class="relative flex-1 bg-black overflow-hidden flex flex-col justify-center">
@@ -237,7 +271,7 @@
     <!-- Contenedor con Scroll de Texto -->
     <div id="scroll-wrapper" class="w-full h-full overflow-y-scroll no-scrollbar cursor-grab active:cursor-grabbing">
       <div id="teleprompter-content" class="max-w-4xl mx-auto px-4 sm:px-12 text-center text-slate-100 font-bold leading-relaxed tracking-wide transition-transform duration-200">
-        <!-- El contenido se inyecta dinámicamente -->
+        <!-- Contenido inyectado dinámicamente -->
       </div>
     </div>
 
@@ -258,7 +292,7 @@
       <video id="webcam-video" autoplay playsinline muted class="w-full h-full object-cover scale-x-[-1]"></video>
     </div>
 
-    <!-- Panel Flotante Inferior de Estado -->
+    <!-- Panel Flotante Inferior de Estado (Responsivo para iOS vertical) -->
     <div id="stats-panel" class="absolute bottom-[calc(0.75rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 bg-slate-900/95 backdrop-blur border border-slate-800 px-3 sm:px-5 py-1.5 sm:py-2 rounded-2xl sm:rounded-full text-[11px] sm:text-xs text-slate-400 flex flex-wrap sm:flex-nowrap items-center justify-center gap-2 sm:gap-3.5 z-20 shadow-xl max-w-[94vw] transition-all duration-300">
       
       <!-- Leyenda visual de colores -->
@@ -298,8 +332,8 @@
             <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/></svg>
           </div>
           <div>
-            <h3 class="font-bold text-slate-100 text-sm sm:text-lg">Repertorio / Setlist de Temas</h3>
-            <p class="text-[11px] sm:text-xs text-slate-400">Ordena tus canciones para el show, agrega nuevas o edita letras e idioma</p>
+            <h3 class="font-bold text-slate-100 text-sm sm:text-lg">Repertorio de Temas</h3>
+            <p class="text-[11px] sm:text-xs text-slate-400">Edita letras, idioma y notas iniciales del cantante</p>
           </div>
         </div>
         <button id="btn-close-setlist" class="text-slate-400 hover:text-white p-2 text-2xl leading-none">&times;</button>
@@ -315,7 +349,7 @@
             <button id="btn-new-song" class="text-blue-400 hover:text-blue-300 font-bold flex items-center gap-1">+ Nuevo Tema</button>
           </div>
 
-          <div id="songs-list-container" class="flex-1 overflow-y-auto no-scrollbar space-y-1.5 pr-1 max-h-[28vh] md:max-h-full">
+          <div id="songs-list-container" class="flex-1 overflow-y-auto no-scrollbar space-y-1.5 pr-1 max-h-[26vh] md:max-h-full">
             <!-- Canciones inyectadas dinámicamente -->
           </div>
 
@@ -335,7 +369,7 @@
         </div>
 
         <!-- Columna Derecha: Formulario de edición del tema seleccionado (7 cols) -->
-        <div class="md:col-span-7 p-3 sm:p-5 flex flex-col gap-2.5 sm:gap-3 overflow-hidden bg-slate-950/40">
+        <div class="md:col-span-7 p-3 sm:p-5 flex flex-col gap-2.5 overflow-hidden bg-slate-950/40">
           
           <div class="grid grid-cols-1 sm:grid-cols-12 gap-2">
             <!-- Título -->
@@ -357,9 +391,18 @@
             </div>
           </div>
 
+          <!-- Campo separado: Guía / Notas Iniciales del Cantante -->
+          <div>
+            <label class="block text-xs font-semibold text-amber-400/90 mb-1 flex items-center gap-1.5">
+              <span>📌 Guía Inicial (Tono, Intro, Cómo arranca, etc.):</span>
+            </label>
+            <input type="text" id="edit-song-notes" class="w-full px-3 py-1.5 bg-slate-900 border border-amber-500/30 rounded-lg text-amber-200 text-xs font-medium focus:outline-none focus:border-amber-500 placeholder-slate-500" placeholder="Ej: Intro 4 compases de piano • Tono Sol Mayor (G) • Comienza suave">
+          </div>
+
+          <!-- Letra limpia -->
           <div class="flex-1 flex flex-col overflow-hidden">
-            <label class="block text-xs font-semibold text-slate-400 mb-1">Letra o Guión:</label>
-            <textarea id="edit-song-content" class="w-full flex-1 p-2.5 sm:p-3 bg-slate-900 border border-slate-800 rounded-lg text-slate-100 font-mono text-xs leading-relaxed focus:outline-none focus:border-blue-500 resize-none min-h-[120px]" placeholder="Escribe o pega aquí los versos..."></textarea>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Letra Cantable (100% limpia):</label>
+            <textarea id="edit-song-content" class="w-full flex-1 p-2.5 sm:p-3 bg-slate-900 border border-slate-800 rounded-lg text-slate-100 font-mono text-xs leading-relaxed focus:outline-none focus:border-blue-500 resize-none min-h-[110px]" placeholder="Escribe o pega aquí los versos que se van a cantar..."></textarea>
           </div>
 
           <div class="flex items-center justify-between pt-1">
@@ -380,8 +423,8 @@
       <!-- Pie del modal -->
       <div class="px-4 sm:px-6 py-2.5 bg-slate-950 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
         <span class="flex items-center gap-1.5 truncate mr-2">
-          <span class="w-2 h-2 rounded-full bg-indigo-400 shrink-0"></span>
-          <span class="truncate">El idioma configurado optimiza el motor de escucha al cantar o hablar.</span>
+          <span class="w-2 h-2 rounded-full bg-amber-400 shrink-0"></span>
+          <span class="truncate">La guía aparece fija al inicio y se repliega cuando empezás a cantar.</span>
         </span>
         <button id="btn-finish-modal" class="text-slate-300 hover:text-white font-semibold shrink-0">Cerrar</button>
       </div>
@@ -396,17 +439,18 @@
 
   <!-- ================= JAVASCRIPT DEL TELEPROMPTER ================= -->
   <script>
-    // Detección del entorno
+    // Detección precisa de plataforma
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     const isAndroid = /Android/i.test(navigator.userAgent);
 
-    // Repertorio inicial de canciones de muestra (incluye tema en inglés)
+    // Repertorio inicial con el nuevo campo de notas técnicas de inicio
     const INITIAL_SETLIST = [
       {
         id: "song_1",
         title: "1. Inconsciente Colectivo (Charly García)",
         lang: "es-ES",
+        notes: "Intro: 4 compases de piano • Tono: Sol Mayor (G) • Entrada de voz suave",
         content: `Nace una flor, todos los días sale el sol
 De vez en cuando además, alguien se suele enamorar
 Y si los reyes de este mundo, nunca pudieron hacerla feliz
@@ -421,6 +465,7 @@ Pero jamás podrán matar la libertad`
         id: "song_2",
         title: "2. Let It Be (The Beatles)",
         lang: "en-US",
+        notes: "Intro: Piano 2 bars • Key: C Major (Do Mayor) • Vocal starts on beat 1",
         content: `When I find myself in times of trouble
 Mother Mary comes to me
 Speaking words of wisdom, let it be
@@ -436,6 +481,7 @@ Whisper words of wisdom, let it be`
         id: "song_3",
         title: "3. Seminare (Serú Girán)",
         lang: "es-ES",
+        notes: "Intro: Teclado eléctrico 2 compases • Tono: Mi menor (Em) • Canto íntimo",
         content: `Sigo dando vueltas en la madrugada
 Escucho tu voz que me llama
 Y no hay nadie aquí
@@ -450,6 +496,7 @@ Que me estoy muriendo de frío`
         id: "song_4",
         title: "4. Guión de Locución / Presentación",
         lang: "es-ES",
+        notes: "Inicio con música de fondo en fade-in • Tono enérgico y entusiasta",
         content: `¡Bienvenidos a la transmisión oficial en directo!
 Hoy tenemos un programa inolvidable repleto de novedades.
 Agradecemos a toda la audiencia que nos acompaña desde diferentes países.
@@ -474,6 +521,7 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       webcamStream: null,
       currentWordIndex: 0,
       isSongFinished: false,
+      isNotesCollapsed: false,
     };
 
     let wordObjects = [];
@@ -517,6 +565,11 @@ Quédense con nosotros porque comenzamos ahora mismo.`
     const autocueSongTitle = document.getElementById('autocue-song-title');
     const toast = document.getElementById('toast');
 
+    // Referencias de la Franja de Notas del Cantante
+    const singerNotesBanner = document.getElementById('singer-notes-banner');
+    const singerNotesText = document.getElementById('singer-notes-text');
+    const btnToggleNotesView = document.getElementById('btn-toggle-notes-view');
+
     // Referencias del Setlist
     const selectActiveSong = document.getElementById('select-active-song');
     const btnPrevSong = document.getElementById('btn-prev-song');
@@ -530,6 +583,7 @@ Quédense con nosotros porque comenzamos ahora mismo.`
     const btnNewSong = document.getElementById('btn-new-song');
     const editSongTitle = document.getElementById('edit-song-title');
     const editSongLang = document.getElementById('edit-song-lang');
+    const editSongNotes = document.getElementById('edit-song-notes');
     const editSongContent = document.getElementById('edit-song-content');
     const btnDeleteSong = document.getElementById('btn-delete-song');
     const btnSaveSong = document.getElementById('btn-save-song');
@@ -547,23 +601,55 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       setTimeout(() => {
         toast.classList.remove('opacity-100', 'translate-y-0');
         toast.classList.add('opacity-0', '-translate-y-2');
-      }, 2600);
+      }, 2500);
     }
+
+    // ================= CONTROL DE LA FRANJA DE NOTAS DEL CANTANTE =================
+    
+    function updateSingerNotesUI() {
+      const song = state.setlist[state.currentSongIndex];
+      const notes = song && song.notes ? song.notes.trim() : "";
+
+      if (!notes) {
+        singerNotesBanner.classList.add('banner-collapsed');
+        return;
+      }
+
+      singerNotesText.textContent = notes;
+      // Al cambiar o cargar tema, la franja se muestra expandida
+      expandSingerNotes();
+    }
+
+    function expandSingerNotes() {
+      const song = state.setlist[state.currentSongIndex];
+      if (song && song.notes && song.notes.trim()) {
+        singerNotesBanner.classList.remove('banner-collapsed');
+        state.isNotesCollapsed = false;
+        btnToggleNotesView.textContent = "Ocultar";
+      }
+    }
+
+    function collapseSingerNotes() {
+      singerNotesBanner.classList.add('banner-collapsed');
+      state.isNotesCollapsed = true;
+      btnToggleNotesView.textContent = "Ver notas";
+    }
+
+    btnToggleNotesView.addEventListener('click', () => {
+      if (state.isNotesCollapsed) expandSingerNotes();
+      else collapseSingerNotes();
+    });
 
     // ================= ALGORITMO FONÉTICO Y DE SIMILITUD (FUZZY MATCHING) =================
-    
-    // Normalizador de texto para canto y habla en español e inglés
     function cleanWord(str) {
       if (!str) return "";
-      let cleaned = str.toLowerCase()
-        .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // sin tildes
-        .replace(/['’´`]/g, "") // quitar apóstrofes de contracciones (don't -> dont, i'm -> im)
-        .replace(/[^a-z0-9]/g, "") // solo letras y números
-        .replace(/(.)\1{2,}/g, "$1$1"); // colapsar vocales prolongadas al cantar (ej: "loooove" -> "loov")
-      return cleaned;
+      return str.toLowerCase()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .replace(/['’´`]/g, "")
+        .replace(/[^a-z0-9]/g, "")
+        .replace(/(.)\1{2,}/g, "$1$1");
     }
 
-    // Cálculo de Distancia Levenshtein
     function levenshteinDistance(a, b) {
       if (a === b) return 0;
       if (!a.length) return b.length;
@@ -579,9 +665,9 @@ Quédense con nosotros porque comenzamos ahora mismo.`
             matrix[i][j] = matrix[i - 1][j - 1];
           } else {
             matrix[i][j] = Math.min(
-              matrix[i - 1][j - 1] + 1, // sustitución
-              matrix[i][j - 1] + 1,     // inserción
-              matrix[i - 1][j] + 1      // eliminación
+              matrix[i - 1][j - 1] + 1,
+              matrix[i][j - 1] + 1,
+              matrix[i - 1][j] + 1
             );
           }
         }
@@ -589,18 +675,15 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       return matrix[b.length][a.length];
     }
 
-    // Comparador tolerante para canto en inglés y español
     function isSongMatch(target, spoken, lang) {
       if (!target || !spoken) return false;
       if (target === spoken) return true;
 
       const isEnglish = lang && lang.startsWith('en');
 
-      // Prefijo común (ej: pronunciación incompleta o inicio de palabra)
       if (spoken.length >= 3 && target.startsWith(spoken)) return true;
       if (target.length >= 4 && spoken.startsWith(target)) return true;
 
-      // Regla especial de canto en inglés: -ing vs -in (singing <-> singin)
       if (isEnglish) {
         const tTrim = target.endsWith('ing') ? target.slice(0, -1) : target;
         const sTrim = spoken.endsWith('ing') ? spoken.slice(0, -1) : spoken;
@@ -608,23 +691,13 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       }
 
       const maxLen = Math.max(target.length, spoken.length);
-      // Para palabras cortas (1 a 3 letras como "in", "to", "de", "me"), se exige mayor precisión
-      if (maxLen <= 3) {
-        return target === spoken;
-      }
+      if (maxLen <= 3) return target === spoken;
 
-      // Distancia de edición tolerable
       const dist = levenshteinDistance(target, spoken);
-      
-      // Si la palabra tiene entre 4 y 5 letras, se tolera 1 error fonético
       if (maxLen <= 5 && dist <= 1) return true;
-      
-      // Si la palabra tiene 6 o más letras, se toleran hasta 2 diferencias
       if (maxLen >= 6 && dist <= 2) return true;
 
-      // Coeficiente de similitud >= 65%
-      const similarity = 1 - (dist / maxLen);
-      return similarity >= 0.65;
+      return (1 - (dist / maxLen)) >= 0.65;
     }
 
     // Renderiza el tema actual
@@ -690,10 +763,11 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       updateFontSize();
       highlightWords(0);
       syncSongSelectorUI();
+      updateSingerNotesUI();
       updateRecognitionLanguage();
     }
 
-    // Actualiza colores de palabras
+    // Actualiza colores de palabras y aplica la lógica híbrida de la franja de notas
     function highlightWords(targetIndex) {
       if (wordObjects.length === 0) return;
       state.currentWordIndex = Math.max(0, Math.min(targetIndex, wordObjects.length - 1));
@@ -707,6 +781,15 @@ Quédense con nosotros porque comenzamos ahora mismo.`
         } else {
           item.el.className = 'prompter-word inline-block word-upcoming';
         }
+      }
+
+      // Comportamiento híbrido solicitado:
+      // Cuando el cantante ya pronunció las primeras palabras (índice > 1), la franja de notas se repliega suavemente.
+      // Si vuelve al inicio (índice 0 o rebobinado), se expande de nuevo.
+      if (state.currentWordIndex >= 2 && !state.isNotesCollapsed) {
+        collapseSingerNotes();
+      } else if (state.currentWordIndex === 0 && state.isNotesCollapsed) {
+        expandSingerNotes();
       }
 
       const activeObj = wordObjects[state.currentWordIndex];
@@ -723,7 +806,6 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       }
     }
 
-    // Centrado en la línea de lectura
     function centerWordOnGuide(el) {
       const containerHeight = scrollWrapper.clientHeight;
       const guideY = containerHeight * (state.guidePosition / 100);
@@ -782,14 +864,12 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       });
       songCount.textContent = state.setlist.length;
 
-      // Actualizar botón de idioma rápido
       const curLang = state.setlist[state.currentSongIndex]?.lang || 'es-ES';
       const shortCode = curLang.slice(0, 2).toUpperCase();
       btnQuickLang.textContent = shortCode;
       micLangBadge.textContent = shortCode;
     }
 
-    // Alternar idioma con el botón rápido ES <-> EN
     btnQuickLang.addEventListener('click', () => {
       const song = state.setlist[state.currentSongIndex];
       if (!song) return;
@@ -898,6 +978,7 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       editingSongId = song.id;
       editSongTitle.value = song.title;
       editSongLang.value = song.lang || 'es-ES';
+      editSongNotes.value = song.notes || '';
       editSongContent.value = song.content;
       renderSetlistModal();
     }
@@ -907,12 +988,14 @@ Quédense con nosotros porque comenzamos ahora mismo.`
         id: "song_" + Date.now(),
         title: `Nuevo Tema (${state.setlist.length + 1})`,
         lang: "es-ES",
+        notes: "",
         content: "Escribe o pega aquí la letra..."
       };
       state.setlist.push(newSong);
       editingSongId = newSong.id;
       editSongTitle.value = newSong.title;
       editSongLang.value = newSong.lang;
+      editSongNotes.value = newSong.notes;
       editSongContent.value = newSong.content;
       renderSetlistModal();
       syncSongSelectorUI();
@@ -924,9 +1007,11 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       if (song) {
         song.title = editSongTitle.value.trim() || "Sin Título";
         song.lang = editSongLang.value || "es-ES";
+        song.notes = editSongNotes.value.trim();
         song.content = editSongContent.value.trim();
         renderSetlistModal();
         syncSongSelectorUI();
+        updateSingerNotesUI();
         updateRecognitionLanguage();
         showToast('Tema guardado');
       }
@@ -941,6 +1026,7 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       state.currentSongIndex = Math.min(state.currentSongIndex, state.setlist.length - 1);
       selectSongForEditing(state.currentSongIndex);
       syncSongSelectorUI();
+      updateSingerNotesUI();
       showToast('Tema eliminado');
     });
 
@@ -949,6 +1035,7 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       if (song) {
         song.title = editSongTitle.value.trim() || "Sin Título";
         song.lang = editSongLang.value || "es-ES";
+        song.notes = editSongNotes.value.trim();
         song.content = editSongContent.value.trim();
         state.currentSongIndex = state.setlist.indexOf(song);
       }
@@ -988,6 +1075,7 @@ Quédense con nosotros porque comenzamos ahora mismo.`
               id: item.id || `song_imp_${idx}`,
               title: item.title || `Tema ${idx + 1}`,
               lang: item.lang || 'es-ES',
+              notes: item.notes || '',
               content: item.content || ''
             }));
             state.currentSongIndex = 0;
@@ -1002,7 +1090,7 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       reader.readAsText(file);
     });
 
-    // ================= RECONOCIMIENTO DE VOZ ADAPTABLE Y TOLERANTE =================
+    // ================= RECONOCIMIENTO DE VOZ =================
     let recognition = null;
     let wakeLock = null;
     let activeMicStream = null;
@@ -1130,7 +1218,6 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       };
     }
 
-    // Algoritmo de comparación con tolerancia fonética para canto
     function processVoiceInput(spokenText) {
       if (!state.isPlaying || wordObjects.length === 0) return;
 
@@ -1139,11 +1226,9 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       if (spokenWords.length === 0) return;
 
       const startIndex = state.currentWordIndex;
-      // Ventana de búsqueda hacia adelante (próximas 14 palabras)
       const lookAheadLimit = Math.min(startIndex + 14, wordObjects.length);
       let matchedIndex = -1;
 
-      // Priorizar las palabras más recientes que escuchó el micrófono
       for (let s = spokenWords.length - 1; s >= 0; s--) {
         const spoken = spokenWords[s];
         if (spoken.length < 2) continue;
@@ -1209,7 +1294,6 @@ Quédense con nosotros porque comenzamos ahora mismo.`
 
     btnToggleVoice.addEventListener('click', () => setVoiceMode(!state.isVoiceMode));
 
-    // Bucle continuo para cuando se apaga el micrófono
     function continuousStep() {
       if (!state.isPlaying || state.isVoiceMode) return;
 
@@ -1271,6 +1355,11 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       recordingBadge.classList.replace('bg-red-500', 'bg-slate-500');
       recordingBadge.classList.remove('animate-pulse');
       detectedTranscript.textContent = "Pausado";
+
+      // Si se pausa estando al inicio o rebobinado, asegurar que las notas sean visibles
+      if (state.currentWordIndex <= 1) {
+        expandSingerNotes();
+      }
     }
 
     function togglePlay() {
@@ -1310,12 +1399,12 @@ Quédense con nosotros porque comenzamos ahora mismo.`
     function rewind() {
       stopPrompter();
       highlightWords(0);
+      expandSingerNotes();
       scrollWrapper.scrollTo({ top: 0, behavior: 'smooth' });
       progressBar.style.width = '0%';
       showToast('Rebobinado al inicio');
     }
 
-    // Saltar palabra con toque táctil
     teleprompterContent.addEventListener('click', (e) => {
       const wordEl = e.target.closest('.prompter-word');
       if (wordEl && wordEl.dataset.index) {
@@ -1324,7 +1413,6 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       }
     });
 
-    // Velocidad y Fuente
     function setSpeed(newSpeed) {
       state.speed = Math.max(0.4, Math.min(10, parseFloat(newSpeed.toFixed(1))));
       speedSlider.value = state.speed;
@@ -1346,7 +1434,6 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       updateFontSize();
     });
 
-    // Modos de Espejo
     function updateTransformations() {
       teleprompterContent.classList.remove('flip-x', 'flip-y', 'flip-both');
       if (state.mirrorH && state.mirrorV) teleprompterContent.classList.add('flip-both');
@@ -1369,7 +1456,6 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       updateTransformations();
     });
 
-    // Posición focal
     guidePosSlider.addEventListener('input', (e) => {
       state.guidePosition = parseInt(e.target.value);
       guideOverlay.style.top = `${state.guidePosition}%`;
@@ -1378,7 +1464,6 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       highlightWords(state.currentWordIndex);
     });
 
-    // Cámara Web
     btnWebcam.addEventListener('click', async () => {
       if (state.webcamStream) {
         closeWebcam();
@@ -1405,7 +1490,6 @@ Quédense con nosotros porque comenzamos ahora mismo.`
     }
     btnCloseWebcam.addEventListener('click', closeWebcam);
 
-    // Pantalla Completa y Modo Enfoque
     function toggleFullScreen() {
       const doc = document;
       const docEl = document.documentElement;
@@ -1441,7 +1525,6 @@ Quédense con nosotros porque comenzamos ahora mismo.`
     btnTogglePlay.addEventListener('click', togglePlay);
     btnRewind.addEventListener('click', rewind);
 
-    // Atajos de teclado
     window.addEventListener('keydown', (e) => {
       if (!setlistModal.classList.contains('hidden')) return;
 
@@ -1470,7 +1553,6 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       }
     });
 
-    // Carga inicial
     window.addEventListener('DOMContentLoaded', () => {
       renderCurrentSong();
       initSpeechRecognition();
