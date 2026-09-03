@@ -267,12 +267,12 @@
         
         <!-- Estado de la transición -->
         <span class="px-3 py-1 rounded-full bg-indigo-950 border border-indigo-500/40 text-indigo-300 text-xs font-mono font-bold tracking-widest uppercase mb-3">
-          Transición entre temas
+          Tiempo de espera y preparación
         </span>
 
-        <!-- Tarjeta del Próximo Tema (Táctil: Al tocarla pasa de inmediato) -->
-        <div id="next-song-card" role="button" title="Toca para arrancar ahora mismo este tema" class="w-full bg-slate-950/80 border border-slate-700 hover:border-indigo-400 p-4 rounded-2xl cursor-pointer transition active:scale-95 group mb-5">
-          <div class="text-[11px] text-slate-400 uppercase font-mono tracking-wider mb-1">A continuación (Toca para iniciar ya):</div>
+        <!-- Tarjeta del Próximo Tema (Táctil: Al tocarla se carga de inmediato en pausa) -->
+        <div id="next-song-card" role="button" title="Toca para cargar ya este tema en pausa" class="w-full bg-slate-950/80 border border-slate-700 hover:border-indigo-400 p-4 rounded-2xl cursor-pointer transition active:scale-95 group mb-5">
+          <div class="text-[11px] text-slate-400 uppercase font-mono tracking-wider mb-1">Próximo Tema (Toca para cargar ahora en pausa):</div>
           <div id="c20-song-title" class="text-lg sm:text-xl font-black text-white group-hover:text-indigo-300 transition truncate">
             Nombre del Tema Siguiente
           </div>
@@ -286,7 +286,7 @@
         </div>
 
         <p id="c20-timer-status" class="text-xs sm:text-sm text-slate-400 mt-1 mb-6 font-medium">
-          El tema arrancará automáticamente cuando el reloj llegue a cero.
+          Al terminar el tiempo, el tema se cargará en pausa para que leas la guía. Presiona Iniciar o Pedal FW cuando estés listo.
         </p>
 
         <!-- Dos Botones Gigantes de Alto Contraste para la Mano (Táctil) -->
@@ -306,9 +306,9 @@
 
         <!-- Pistas para el pie (Pedal Bluetooth) -->
         <div class="mt-5 text-[11px] text-slate-500 font-mono flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
-          <span>Pedal FW (1 toque): Pausar/Reanudar</span>
-          <span>Pedal FW (2 toques): Iniciar ya</span>
-          <span>Pedal REV (1 toque): Volver atrás</span>
+          <span>Pedal FW (1 toque): Pausar/Reanudar cuenta</span>
+          <span>Pedal FW (2 toques): Cargar tema en pausa ya</span>
+          <span>Pedal REV (1 toque): Volver al tema anterior</span>
         </div>
 
       </div>
@@ -517,6 +517,29 @@
     </div>
   </div>
 
+  <!-- ================= MODAL INTERMEDIO DE CONFIRMACIÓN DE ELIMINACIÓN ================= -->
+  <div id="delete-confirm-modal" class="fixed inset-0 bg-black/90 backdrop-blur-md z-[60] flex items-center justify-center p-4 hidden transition-all duration-200">
+    <div class="bg-slate-900 border border-rose-500/50 rounded-2xl p-5 sm:p-6 max-w-md w-full shadow-2xl flex flex-col gap-4 text-center">
+      <div class="w-12 h-12 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center mx-auto text-2xl font-bold">
+        ⚠️
+      </div>
+      <div>
+        <h4 class="text-base font-bold text-white mb-1">¿Eliminar este tema del repertorio?</h4>
+        <p class="text-xs text-slate-300">
+          Estás a punto de borrar <span id="delete-confirm-song-title" class="text-rose-400 font-semibold font-mono">"Título"</span>. Esta acción no se puede deshacer.
+        </p>
+      </div>
+      <div class="flex items-center justify-center gap-3 mt-2">
+        <button id="btn-cancel-delete" class="flex-1 py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 font-semibold text-xs transition border border-slate-700">
+          Cancelar
+        </button>
+        <button id="btn-confirm-delete" class="flex-1 py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-500 active:scale-95 text-white font-bold text-xs transition shadow-lg shadow-rose-950/50">
+          Sí, eliminar
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast de Notificaciones Flotante -->
   <div id="toast" class="fixed top-14 sm:top-16 left-1/2 -translate-x-1/2 bg-slate-800/95 border border-slate-700 text-slate-100 text-xs px-4 py-2 rounded-full shadow-2xl pointer-events-none transition-all duration-300 opacity-0 -translate-y-2 z-50 max-w-[90vw] text-center">
     Mensaje
@@ -700,6 +723,12 @@ Quédense con nosotros porque comenzamos ahora mismo.`
     const btnExportSetlist = document.getElementById('btn-export-setlist');
     const inputImportSetlist = document.getElementById('input-import-setlist');
 
+    // Referencias del Modal de Confirmación de Eliminación
+    const deleteConfirmModal = document.getElementById('delete-confirm-modal');
+    const deleteConfirmSongTitle = document.getElementById('delete-confirm-song-title');
+    const btnCancelDelete = document.getElementById('btn-cancel-delete');
+    const btnConfirmDelete = document.getElementById('btn-confirm-delete');
+
     let editingSongId = null;
 
     // Toast flotante
@@ -717,7 +746,6 @@ Quédense con nosotros porque comenzamos ahora mismo.`
     let hudTimeout = null;
 
     function triggerPedalFeedback(actionType, labelText) {
-      // 1. Destello perimetral en los bordes de la pantalla
       let borderColor = 'border-blue-500';
       let icon = '▶';
 
@@ -751,7 +779,6 @@ Quédense con nosotros porque comenzamos ahora mismo.`
 
       pedalFlashOverlay.className = `absolute inset-0 z-50 border-[8px] pointer-events-none transition-all duration-300 opacity-100 ${borderColor}`;
       
-      // 2. HUD Central visible a distancia
       hudIcon.textContent = icon;
       hudText.textContent = labelText || '';
       pedalHud.classList.remove('opacity-0', 'scale-90');
@@ -1042,7 +1069,7 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       });
     }
 
-    // ================= TRANSIÓN DE 20 SEGUNDOS ENTRE TEMAS (ESCENARIO + TÁCTIL) =================
+    // ================= TRANSIÓN DE 20 SEGUNDOS ENTRE TEMAS (CARGA EN PAUSA) =================
     
     function handleSongFinished() {
       // Si hay un siguiente tema en la lista
@@ -1081,10 +1108,13 @@ Quédense con nosotros porque comenzamos ahora mismo.`
           state.transitionSecondsRemaining--;
           update20sTimerUI();
 
+          // Al cumplirse los 20s, pasa al siguiente tema pero EMPIEZA PAUSADO
           if (state.transitionSecondsRemaining <= 0) {
             clearInterval(state.transitionTimerId);
             close20sTransition();
-            changeSong(nextIndex, true); // Arranca automáticamente el siguiente
+            changeSong(nextIndex, false); // <--- INICIA PAUSADO
+            showToast('Tema preparado. Toca Iniciar o Pedal FW para arrancar');
+            triggerPedalFeedback('pause', 'Tema Listo (Pausa)');
           }
         }
       }, 1000);
@@ -1094,14 +1124,14 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       c20TimerNumber.textContent = `${state.transitionSecondsRemaining}s`;
       if (state.transitionPaused) {
         c20TimerNumber.classList.replace('text-indigo-400', 'text-amber-400');
-        c20TimerStatus.textContent = 'Reloj pausado • Habla con el público tranquilo';
+        c20TimerStatus.textContent = 'Reloj pausado • Tómate el tiempo que necesites';
         c20PauseIcon.textContent = '▶';
         c20PauseLabel.textContent = `Reanudar cuenta (${state.transitionSecondsRemaining}s)`;
         btnC20PauseResume.classList.replace('bg-amber-600', 'bg-emerald-600');
         btnC20PauseResume.classList.replace('hover:bg-amber-500', 'hover:bg-emerald-500');
       } else {
         c20TimerNumber.classList.replace('text-amber-400', 'text-indigo-400');
-        c20TimerStatus.textContent = 'El tema arrancará automáticamente cuando el reloj llegue a cero.';
+        c20TimerStatus.textContent = 'Al terminar el tiempo, el tema se cargará en pausa para que leas la guía. Presiona Iniciar o Pedal FW cuando estés listo.';
         c20PauseIcon.textContent = '⏸';
         c20PauseLabel.textContent = `Pausar cuenta (${state.transitionSecondsRemaining}s)`;
         btnC20PauseResume.classList.replace('bg-emerald-600', 'bg-amber-600');
@@ -1123,17 +1153,19 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       clearInterval(state.transitionTimerId);
       close20sTransition();
       const prevIdx = state.previousSongIndex !== null ? state.previousSongIndex : Math.max(0, state.currentSongIndex - 1);
-      changeSong(prevIdx, false);
+      changeSong(prevIdx, false); // Carga en pausa
       triggerPedalFeedback('prev', 'Regresar al Anterior');
       showToast('Regresando al tema anterior');
     }
 
-    function forceStartNextSongNow() {
+    // Forzar el paso al siguiente tema saltando la espera: CARGA EN PAUSA
+    function forceLoadNextSongPaused() {
       clearInterval(state.transitionTimerId);
       close20sTransition();
       const nextIdx = Math.min(state.setlist.length - 1, state.currentSongIndex + 1);
-      changeSong(nextIdx, true);
-      triggerPedalFeedback('next', 'Tema Iniciado');
+      changeSong(nextIdx, false); // <--- INICIA PAUSADO
+      triggerPedalFeedback('pause', 'Tema Listo (Pausa)');
+      showToast('Tema preparado. Toca Iniciar o Pedal FW para arrancar');
     }
 
     function close20sTransition() {
@@ -1145,7 +1177,7 @@ Quédense con nosotros porque comenzamos ahora mismo.`
     // Eventos táctiles del modal de 20s
     btnC20PauseResume.addEventListener('click', toggle20sPauseResume);
     btnC20BackPrev.addEventListener('click', returnToPreviousSong);
-    nextSongCard.addEventListener('click', forceStartNextSongNow);
+    nextSongCard.addEventListener('click', forceLoadNextSongPaused);
 
     function changeSong(index, shouldStart = false) {
       if (index < 0 || index >= state.setlist.length) return;
@@ -1200,7 +1232,7 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       }
     });
 
-    // ================= GESTIÓN DEL REPERTORIO =================
+    // ================= GESTIÓN DEL REPERTORIO Y CONFIRMACIÓN DE ELIMINACIÓN =================
     function openSetlistManager() {
       if (state.isPlaying) stopPrompter();
       renderSetlistModal();
@@ -1319,17 +1351,29 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       }
     });
 
+    // Modal de confirmación para eliminar (Instancia intermedia de seguridad)
     btnDeleteSong.addEventListener('click', () => {
       if (state.setlist.length <= 1) {
-        showToast('Debe haber al menos un tema');
+        showToast('Debe haber al menos un tema en el repertorio');
         return;
       }
+      const song = state.setlist.find(s => s.id === editingSongId);
+      deleteConfirmSongTitle.textContent = `"${song ? song.title : 'este tema'}"`;
+      deleteConfirmModal.classList.remove('hidden');
+    });
+
+    btnCancelDelete.addEventListener('click', () => {
+      deleteConfirmModal.classList.add('hidden');
+    });
+
+    btnConfirmDelete.addEventListener('click', () => {
       state.setlist = state.setlist.filter(s => s.id !== editingSongId);
       state.currentSongIndex = Math.min(state.currentSongIndex, state.setlist.length - 1);
       selectSongForEditing(state.currentSongIndex);
       syncSongSelectorUI();
       updateSingerNotesUI();
-      showToast('Tema eliminado');
+      deleteConfirmModal.classList.add('hidden');
+      showToast('Tema eliminado del repertorio');
     });
 
     btnLoadAndExit.addEventListener('click', () => {
@@ -1835,23 +1879,21 @@ Quédense con nosotros porque comenzamos ahora mismo.`
     let isRevHolding = false;
     let revHoldInterval = null;
 
-    // Escucha de Keydown (Pulsación y detección de Hold)
     window.addEventListener('keydown', (e) => {
-      // Ignorar si el modal de edición de repertorio está abierto
-      if (!setlistModal.classList.contains('hidden')) return;
+      // Ignorar si los modales de repertorio o confirmación están abiertos
+      if (!setlistModal.classList.contains('hidden') || !deleteConfirmModal.classList.contains('hidden')) return;
 
       const code = e.code;
 
-      // 1. CANAL FW (ADELANTE / PAUSA / SALTO SIGUIENTE)
+      // 1. CANAL FW (ADELANTE / PAUSA / CARGAR SIGUIENTE)
       if (FW_KEYS.has(code)) {
         e.preventDefault();
-        if (e.repeat) return; // Evitar repeticiones automáticas del SO
+        if (e.repeat) return;
 
-        // Iniciar temporizador para detectar Hold (>450ms)
         clearTimeout(fwHoldTimer);
         fwHoldTimer = setTimeout(() => {
           isFwHolding = true;
-          clearTimeout(fwClickTimer); // Cancelar clic simple/doble
+          clearTimeout(fwClickTimer);
           fwClickCount = 0;
           startFwHoldScroll();
         }, 450);
@@ -1871,7 +1913,6 @@ Quédense con nosotros porque comenzamos ahora mismo.`
         }, 450);
       }
 
-      // Atajos auxiliares por teclado
       else if (e.key === 'r' || e.key === 'R') {
         rewind();
       } else if (e.key === 'v' || e.key === 'V') {
@@ -1884,9 +1925,8 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       }
     });
 
-    // Escucha de Keyup (Fin de pulsación o descarte de Hold)
     window.addEventListener('keyup', (e) => {
-      if (!setlistModal.classList.contains('hidden')) return;
+      if (!setlistModal.classList.contains('hidden') || !deleteConfirmModal.classList.contains('hidden')) return;
 
       const code = e.code;
 
@@ -1896,26 +1936,22 @@ Quédense con nosotros porque comenzamos ahora mismo.`
         clearTimeout(fwHoldTimer);
 
         if (isFwHolding) {
-          // Si venía de mantener pisado, frenar avance y no disparar clics
           stopFwHoldScroll();
           isFwHolding = false;
           return;
         }
 
-        // Si fue una pisada corta, procesar con ventana de 500 ms para doble pisada
         fwClickCount++;
 
         if (fwClickCount === 1) {
           clearTimeout(fwClickTimer);
           fwClickTimer = setTimeout(() => {
-            // Acción Simple FW (1 pisada)
             handleFwSingleTap();
             fwClickCount = 0;
-          }, 500); // 500 ms exactos calibrados para el pie
+          }, 500); // 500 ms calibrados para el pie
         } else if (fwClickCount === 2) {
           clearTimeout(fwClickTimer);
           fwClickCount = 0;
-          // Acción Doble FW (2 pisadas)
           handleFwDoubleTap();
         }
       }
@@ -1938,7 +1974,7 @@ Quédense con nosotros porque comenzamos ahora mismo.`
           revClickTimer = setTimeout(() => {
             handleRevSingleTap();
             revClickCount = 0;
-          }, 500); // 500 ms exactos
+          }, 500);
         } else if (revClickCount === 2) {
           clearTimeout(revClickTimer);
           revClickCount = 0;
@@ -1949,7 +1985,7 @@ Quédense con nosotros porque comenzamos ahora mismo.`
 
     // --- ACCIONES ESPECÍFICAS DE CADA PISADA ---
 
-    // 1 Toque FW: Pausa/Reanuda canción o reloj de 20s
+    // 1 Toque FW: Pausa/Reanuda cuenta de 20s; en canción normal Inicia/Pausa
     function handleFwSingleTap() {
       if (state.isTransitionActive) {
         toggle20sPauseResume();
@@ -1958,22 +1994,22 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       }
     }
 
-    // 2 Toques FW (~500ms): Salto inmediato de tema
+    // 2 Toques FW (~500ms): Carga de inmediato el siguiente tema (EN PAUSA)
     function handleFwDoubleTap() {
       if (state.isTransitionActive) {
-        forceStartNextSongNow();
+        forceLoadNextSongPaused();
       } else {
         if (state.currentSongIndex < state.setlist.length - 1) {
           triggerPedalFeedback('next', 'Siguiente Tema');
-          changeSong(state.currentSongIndex + 1, false);
-          showToast('Siguiente tema cargado');
+          changeSong(state.currentSongIndex + 1, false); // Carga en pausa
+          showToast('Siguiente tema cargado (En pausa)');
         } else {
           showToast('Estás en el último tema');
         }
       }
     }
 
-    // 1 Toque REV: En canción va al inicio (cero); en 20s vuelve al anterior
+    // 1 Toque REV: En canción va al inicio; en 20s vuelve al tema finalizado (EN PAUSA)
     function handleRevSingleTap() {
       if (state.isTransitionActive) {
         returnToPreviousSong();
@@ -1982,15 +2018,15 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       }
     }
 
-    // 2 Toques REV (~500ms): Salto directo al tema anterior del repertorio
+    // 2 Toques REV (~500ms): Salto directo al tema anterior del repertorio (EN PAUSA)
     function handleRevDoubleTap() {
       if (state.isTransitionActive) {
         returnToPreviousSong();
       } else {
         if (state.currentSongIndex > 0) {
           triggerPedalFeedback('prev', 'Tema Anterior');
-          changeSong(state.currentSongIndex - 1, false);
-          showToast('Tema anterior cargado');
+          changeSong(state.currentSongIndex - 1, false); // Carga en pausa
+          showToast('Tema anterior cargado (En pausa)');
         } else {
           rewind();
         }
@@ -2005,7 +2041,7 @@ Quédense con nosotros porque comenzamos ahora mismo.`
         if (wordObjects.length > 0 && state.currentWordIndex < wordObjects.length - 1) {
           highlightWords(state.currentWordIndex + 1);
         }
-      }, 180); // Avance de ~5 palabras por segundo
+      }, 180);
     }
 
     function stopFwHoldScroll() {
