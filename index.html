@@ -24,7 +24,7 @@
     }
   </script>
   <style>
-    /* Soporte para altura dinámica en navegadores móviles modernos */
+    /* Soporte para altura dinámica en navegadores móviles */
     .app-height {
       height: 100vh;
       height: 100dvh;
@@ -119,18 +119,23 @@
         </button>
       </div>
 
-      <!-- Selector Rápido de Setlist / Playlist en Vivo -->
+      <!-- Selector Rápido de Setlist / Playlist en Vivo con Selector de Idioma -->
       <div class="flex items-center gap-1 bg-slate-800/90 px-1.5 sm:px-2 py-1 rounded-lg border border-slate-700/80">
         <button id="btn-prev-song" title="Tema Anterior (Tecla [ o P)" class="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-700 transition">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
         </button>
 
-        <select id="select-active-song" class="bg-slate-900 text-slate-200 text-xs font-semibold px-2 py-1 rounded border border-slate-700 focus:outline-none focus:border-blue-500 max-w-[120px] sm:max-w-[210px] truncate cursor-pointer">
+        <select id="select-active-song" class="bg-slate-900 text-slate-200 text-xs font-semibold px-2 py-1 rounded border border-slate-700 focus:outline-none focus:border-blue-500 max-w-[120px] sm:max-w-[200px] truncate cursor-pointer">
           <!-- Opciones de canciones inyectadas dinámicamente -->
         </select>
 
         <button id="btn-next-song" title="Tema Siguiente (Tecla ] o N)" class="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-700 transition">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        </button>
+
+        <!-- Botón Conmutador Rápido de Idioma del Tema (ES / EN) -->
+        <button id="btn-quick-lang" title="Cambiar idioma de reconocimiento para este tema" class="ml-0.5 px-1.5 py-0.5 rounded bg-blue-950 border border-blue-500/50 text-sky-300 hover:bg-blue-900 font-mono font-bold text-[11px] transition">
+          ES
         </button>
 
         <button id="btn-open-setlist" title="Gestionar Repertorio Completo" class="ml-1 flex items-center gap-1 px-2 py-1 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs transition">
@@ -253,10 +258,10 @@
       <video id="webcam-video" autoplay playsinline muted class="w-full h-full object-cover scale-x-[-1]"></video>
     </div>
 
-    <!-- Panel Flotante Inferior de Estado (Responsivo para iOS vertical) -->
+    <!-- Panel Flotante Inferior de Estado -->
     <div id="stats-panel" class="absolute bottom-[calc(0.75rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 bg-slate-900/95 backdrop-blur border border-slate-800 px-3 sm:px-5 py-1.5 sm:py-2 rounded-2xl sm:rounded-full text-[11px] sm:text-xs text-slate-400 flex flex-wrap sm:flex-nowrap items-center justify-center gap-2 sm:gap-3.5 z-20 shadow-xl max-w-[94vw] transition-all duration-300">
       
-      <!-- Leyenda visual de colores (compacta en móvil vertical) -->
+      <!-- Leyenda visual de colores -->
       <div class="flex items-center gap-1.5 sm:gap-2 font-medium">
         <span class="flex items-center gap-1 text-blue-500 font-semibold"><span class="w-2 h-2 rounded-full bg-blue-600"></span> <span class="hidden sm:inline">Cantado</span><span class="sm:hidden">Hecho</span> (Azul)</span>
         <span class="text-slate-600">|</span>
@@ -265,9 +270,9 @@
 
       <div class="hidden sm:block w-1 h-3 bg-slate-800"></div>
 
-      <!-- Indicador de voz en vivo -->
+      <!-- Indicador de voz e idioma en vivo -->
       <div class="flex items-center gap-1 sm:gap-1.5">
-        <span class="text-slate-500 hidden sm:inline">Micrófono:</span>
+        <span id="mic-lang-badge" class="px-1.5 py-0.5 rounded bg-slate-800 text-sky-400 font-mono text-[10px] font-bold">ES</span>
         <span id="detected-transcript" class="text-blue-400 font-mono font-medium truncate max-w-[120px] sm:max-w-[170px]">En espera...</span>
       </div>
 
@@ -294,7 +299,7 @@
           </div>
           <div>
             <h3 class="font-bold text-slate-100 text-sm sm:text-lg">Repertorio / Setlist de Temas</h3>
-            <p class="text-[11px] sm:text-xs text-slate-400">Ordena tus canciones para el show, agrega nuevas o edita letras</p>
+            <p class="text-[11px] sm:text-xs text-slate-400">Ordena tus canciones para el show, agrega nuevas o edita letras e idioma</p>
           </div>
         </div>
         <button id="btn-close-setlist" class="text-slate-400 hover:text-white p-2 text-2xl leading-none">&times;</button>
@@ -318,12 +323,12 @@
           <div class="pt-2 border-t border-slate-800 flex items-center justify-between text-xs">
             <button id="btn-export-setlist" class="text-slate-400 hover:text-slate-200 flex items-center gap-1">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-              <span>Exportar</span>
+              <span>Exportar Setlist</span>
             </button>
 
             <label class="text-slate-400 hover:text-slate-200 cursor-pointer flex items-center gap-1">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-              <span>Importar</span>
+              <span>Importar Setlist</span>
               <input type="file" id="input-import-setlist" accept=".json" class="hidden">
             </label>
           </div>
@@ -331,9 +336,25 @@
 
         <!-- Columna Derecha: Formulario de edición del tema seleccionado (7 cols) -->
         <div class="md:col-span-7 p-3 sm:p-5 flex flex-col gap-2.5 sm:gap-3 overflow-hidden bg-slate-950/40">
-          <div>
-            <label class="block text-xs font-semibold text-slate-400 mb-1">Título del Tema:</label>
-            <input type="text" id="edit-song-title" class="w-full px-3 py-1.5 sm:py-2 bg-slate-900 border border-slate-800 rounded-lg text-slate-100 text-sm font-semibold focus:outline-none focus:border-blue-500" placeholder="Ej: Seminare (En Vivo)">
+          
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-2">
+            <!-- Título -->
+            <div class="sm:col-span-8">
+              <label class="block text-xs font-semibold text-slate-400 mb-1">Título del Tema:</label>
+              <input type="text" id="edit-song-title" class="w-full px-3 py-1.5 sm:py-2 bg-slate-900 border border-slate-800 rounded-lg text-slate-100 text-sm font-semibold focus:outline-none focus:border-blue-500" placeholder="Ej: Let It Be (The Beatles)">
+            </div>
+
+            <!-- Idioma del tema -->
+            <div class="sm:col-span-4">
+              <label class="block text-xs font-semibold text-slate-400 mb-1">Idioma de Voz:</label>
+              <select id="edit-song-lang" class="w-full px-2.5 py-1.5 sm:py-2 bg-slate-900 border border-slate-800 rounded-lg text-slate-200 text-xs font-semibold focus:outline-none focus:border-blue-500 cursor-pointer">
+                <option value="es-ES">Español (ES)</option>
+                <option value="en-US">English (US)</option>
+                <option value="en-GB">English (UK)</option>
+                <option value="pt-BR">Português (BR)</option>
+                <option value="it-IT">Italiano (IT)</option>
+              </select>
+            </div>
           </div>
 
           <div class="flex-1 flex flex-col overflow-hidden">
@@ -360,7 +381,7 @@
       <div class="px-4 sm:px-6 py-2.5 bg-slate-950 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
         <span class="flex items-center gap-1.5 truncate mr-2">
           <span class="w-2 h-2 rounded-full bg-indigo-400 shrink-0"></span>
-          <span class="truncate">Auto-Cue: Carga el siguiente tema y queda en espera.</span>
+          <span class="truncate">El idioma configurado optimiza el motor de escucha al cantar o hablar.</span>
         </span>
         <button id="btn-finish-modal" class="text-slate-300 hover:text-white font-semibold shrink-0">Cerrar</button>
       </div>
@@ -375,16 +396,17 @@
 
   <!-- ================= JAVASCRIPT DEL TELEPROMPTER ================= -->
   <script>
-    // Detección precisa del entorno
+    // Detección del entorno
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     const isAndroid = /Android/i.test(navigator.userAgent);
 
-    // Repertorio inicial de canciones de muestra
+    // Repertorio inicial de canciones de muestra (incluye tema en inglés)
     const INITIAL_SETLIST = [
       {
         id: "song_1",
         title: "1. Inconsciente Colectivo (Charly García)",
+        lang: "es-ES",
         content: `Nace una flor, todos los días sale el sol
 De vez en cuando además, alguien se suele enamorar
 Y si los reyes de este mundo, nunca pudieron hacerla feliz
@@ -397,7 +419,23 @@ Pero jamás podrán matar la libertad`
       },
       {
         id: "song_2",
-        title: "2. Seminare (Serú Girán)",
+        title: "2. Let It Be (The Beatles)",
+        lang: "en-US",
+        content: `When I find myself in times of trouble
+Mother Mary comes to me
+Speaking words of wisdom, let it be
+
+And in my hour of darkness
+She is standing right in front of me
+Speaking words of wisdom, let it be
+
+Let it be, let it be, let it be, let it be
+Whisper words of wisdom, let it be`
+      },
+      {
+        id: "song_3",
+        title: "3. Seminare (Serú Girán)",
+        lang: "es-ES",
         content: `Sigo dando vueltas en la madrugada
 Escucho tu voz que me llama
 Y no hay nadie aquí
@@ -409,8 +447,9 @@ Dame un poco de tu amor
 Que me estoy muriendo de frío`
       },
       {
-        id: "song_3",
-        title: "3. Guión de Locución / Presentación",
+        id: "song_4",
+        title: "4. Guión de Locución / Presentación",
+        lang: "es-ES",
         content: `¡Bienvenidos a la transmisión oficial en directo!
 Hoy tenemos un programa inolvidable repleto de novedades.
 Agradecemos a toda la audiencia que nos acompaña desde diferentes países.
@@ -459,6 +498,8 @@ Quédense con nosotros porque comenzamos ahora mismo.`
     const micPing = document.getElementById('mic-ping');
     const micDot = document.getElementById('mic-dot');
     const detectedTranscript = document.getElementById('detected-transcript');
+    const micLangBadge = document.getElementById('mic-lang-badge');
+    const btnQuickLang = document.getElementById('btn-quick-lang');
     const btnMirrorH = document.getElementById('btn-mirror-h');
     const btnMirrorV = document.getElementById('btn-mirror-v');
     const btnWebcam = document.getElementById('btn-webcam');
@@ -488,6 +529,7 @@ Quédense con nosotros porque comenzamos ahora mismo.`
     const songCount = document.getElementById('song-count');
     const btnNewSong = document.getElementById('btn-new-song');
     const editSongTitle = document.getElementById('edit-song-title');
+    const editSongLang = document.getElementById('edit-song-lang');
     const editSongContent = document.getElementById('edit-song-content');
     const btnDeleteSong = document.getElementById('btn-delete-song');
     const btnSaveSong = document.getElementById('btn-save-song');
@@ -508,13 +550,81 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       }, 2600);
     }
 
-    // Normalizador de texto para canto
+    // ================= ALGORITMO FONÉTICO Y DE SIMILITUD (FUZZY MATCHING) =================
+    
+    // Normalizador de texto para canto y habla en español e inglés
     function cleanWord(str) {
       if (!str) return "";
-      return str.toLowerCase()
-        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-        .replace(/[^a-z0-9]/g, "")
-        .replace(/(.)\1{2,}/g, "$1");
+      let cleaned = str.toLowerCase()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // sin tildes
+        .replace(/['’´`]/g, "") // quitar apóstrofes de contracciones (don't -> dont, i'm -> im)
+        .replace(/[^a-z0-9]/g, "") // solo letras y números
+        .replace(/(.)\1{2,}/g, "$1$1"); // colapsar vocales prolongadas al cantar (ej: "loooove" -> "loov")
+      return cleaned;
+    }
+
+    // Cálculo de Distancia Levenshtein
+    function levenshteinDistance(a, b) {
+      if (a === b) return 0;
+      if (!a.length) return b.length;
+      if (!b.length) return a.length;
+
+      const matrix = [];
+      for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+      for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+
+      for (let i = 1; i <= b.length; i++) {
+        for (let j = 1; j <= a.length; j++) {
+          if (b.charAt(i - 1) === a.charAt(j - 1)) {
+            matrix[i][j] = matrix[i - 1][j - 1];
+          } else {
+            matrix[i][j] = Math.min(
+              matrix[i - 1][j - 1] + 1, // sustitución
+              matrix[i][j - 1] + 1,     // inserción
+              matrix[i - 1][j] + 1      // eliminación
+            );
+          }
+        }
+      }
+      return matrix[b.length][a.length];
+    }
+
+    // Comparador tolerante para canto en inglés y español
+    function isSongMatch(target, spoken, lang) {
+      if (!target || !spoken) return false;
+      if (target === spoken) return true;
+
+      const isEnglish = lang && lang.startsWith('en');
+
+      // Prefijo común (ej: pronunciación incompleta o inicio de palabra)
+      if (spoken.length >= 3 && target.startsWith(spoken)) return true;
+      if (target.length >= 4 && spoken.startsWith(target)) return true;
+
+      // Regla especial de canto en inglés: -ing vs -in (singing <-> singin)
+      if (isEnglish) {
+        const tTrim = target.endsWith('ing') ? target.slice(0, -1) : target;
+        const sTrim = spoken.endsWith('ing') ? spoken.slice(0, -1) : spoken;
+        if (tTrim === sTrim || (tTrim.length >= 3 && sTrim.startsWith(tTrim))) return true;
+      }
+
+      const maxLen = Math.max(target.length, spoken.length);
+      // Para palabras cortas (1 a 3 letras como "in", "to", "de", "me"), se exige mayor precisión
+      if (maxLen <= 3) {
+        return target === spoken;
+      }
+
+      // Distancia de edición tolerable
+      const dist = levenshteinDistance(target, spoken);
+      
+      // Si la palabra tiene entre 4 y 5 letras, se tolera 1 error fonético
+      if (maxLen <= 5 && dist <= 1) return true;
+      
+      // Si la palabra tiene 6 o más letras, se toleran hasta 2 diferencias
+      if (maxLen >= 6 && dist <= 2) return true;
+
+      // Coeficiente de similitud >= 65%
+      const similarity = 1 - (dist / maxLen);
+      return similarity >= 0.65;
     }
 
     // Renderiza el tema actual
@@ -580,6 +690,7 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       updateFontSize();
       highlightWords(0);
       syncSongSelectorUI();
+      updateRecognitionLanguage();
     }
 
     // Actualiza colores de palabras
@@ -664,12 +775,29 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       state.setlist.forEach((song, idx) => {
         const opt = document.createElement('option');
         opt.value = idx;
-        opt.textContent = song.title;
+        const langShort = (song.lang || 'es-ES').slice(0, 2).toUpperCase();
+        opt.textContent = `[${langShort}] ${song.title}`;
         if (idx === state.currentSongIndex) opt.selected = true;
         selectActiveSong.appendChild(opt);
       });
       songCount.textContent = state.setlist.length;
+
+      // Actualizar botón de idioma rápido
+      const curLang = state.setlist[state.currentSongIndex]?.lang || 'es-ES';
+      const shortCode = curLang.slice(0, 2).toUpperCase();
+      btnQuickLang.textContent = shortCode;
+      micLangBadge.textContent = shortCode;
     }
+
+    // Alternar idioma con el botón rápido ES <-> EN
+    btnQuickLang.addEventListener('click', () => {
+      const song = state.setlist[state.currentSongIndex];
+      if (!song) return;
+      song.lang = (song.lang && song.lang.startsWith('en')) ? 'es-ES' : 'en-US';
+      syncSongSelectorUI();
+      updateRecognitionLanguage();
+      showToast(`Idioma cambiado a: ${song.lang === 'en-US' ? 'Inglés (EN)' : 'Español (ES)'}`);
+    });
 
     selectActiveSong.addEventListener('change', (e) => {
       changeSong(parseInt(e.target.value), false);
@@ -709,6 +837,7 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       state.setlist.forEach((song, idx) => {
         const item = document.createElement('div');
         const isActive = idx === state.currentSongIndex;
+        const langTag = (song.lang || 'es-ES').slice(0, 2).toUpperCase();
         item.className = `p-2 rounded-lg border flex items-center justify-between gap-2 cursor-pointer transition ${
           isActive 
             ? 'bg-blue-950/60 border-blue-500/80 text-white shadow-sm' 
@@ -718,6 +847,7 @@ Quédense con nosotros porque comenzamos ahora mismo.`
         item.innerHTML = `
           <div class="flex items-center gap-2 truncate">
             <span class="text-xs font-mono font-bold text-slate-500">${idx + 1}.</span>
+            <span class="px-1 py-0.2 rounded bg-slate-800 border border-slate-700 text-sky-400 font-mono text-[10px] font-bold">${langTag}</span>
             <span class="text-xs font-semibold truncate">${song.title}</span>
           </div>
           <div class="flex items-center gap-1">
@@ -767,6 +897,7 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       if (!song) return;
       editingSongId = song.id;
       editSongTitle.value = song.title;
+      editSongLang.value = song.lang || 'es-ES';
       editSongContent.value = song.content;
       renderSetlistModal();
     }
@@ -775,11 +906,13 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       const newSong = {
         id: "song_" + Date.now(),
         title: `Nuevo Tema (${state.setlist.length + 1})`,
+        lang: "es-ES",
         content: "Escribe o pega aquí la letra..."
       };
       state.setlist.push(newSong);
       editingSongId = newSong.id;
       editSongTitle.value = newSong.title;
+      editSongLang.value = newSong.lang;
       editSongContent.value = newSong.content;
       renderSetlistModal();
       syncSongSelectorUI();
@@ -790,9 +923,11 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       const song = state.setlist.find(s => s.id === editingSongId);
       if (song) {
         song.title = editSongTitle.value.trim() || "Sin Título";
+        song.lang = editSongLang.value || "es-ES";
         song.content = editSongContent.value.trim();
         renderSetlistModal();
         syncSongSelectorUI();
+        updateRecognitionLanguage();
         showToast('Tema guardado');
       }
     });
@@ -813,6 +948,7 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       const song = state.setlist.find(s => s.id === editingSongId);
       if (song) {
         song.title = editSongTitle.value.trim() || "Sin Título";
+        song.lang = editSongLang.value || "es-ES";
         song.content = editSongContent.value.trim();
         state.currentSongIndex = state.setlist.indexOf(song);
       }
@@ -827,7 +963,7 @@ Quédense con nosotros porque comenzamos ahora mismo.`
     btnCloseSetlist.addEventListener('click', closeSetlistManager);
     btnFinishModal.addEventListener('click', closeSetlistManager);
 
-    // Exportar Repertorio
+    // Exportar Repertorio (JSON)
     btnExportSetlist.addEventListener('click', () => {
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state.setlist, null, 2));
       const downloadAnchor = document.createElement('a');
@@ -836,10 +972,10 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();
       downloadAnchor.remove();
-      showToast('Repertorio exportado');
+      showToast('Repertorio exportado en archivo .json');
     });
 
-    // Importar Repertorio
+    // Importar Repertorio (JSON)
     inputImportSetlist.addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (!file) return;
@@ -848,11 +984,16 @@ Quédense con nosotros porque comenzamos ahora mismo.`
         try {
           const imported = JSON.parse(event.target.result);
           if (Array.isArray(imported) && imported.length > 0) {
-            state.setlist = imported;
+            state.setlist = imported.map((item, idx) => ({
+              id: item.id || `song_imp_${idx}`,
+              title: item.title || `Tema ${idx + 1}`,
+              lang: item.lang || 'es-ES',
+              content: item.content || ''
+            }));
             state.currentSongIndex = 0;
             renderSetlistModal();
             renderCurrentSong();
-            showToast('Repertorio importado con éxito');
+            showToast('Repertorio importado exitosamente');
           }
         } catch (err) {
           showToast('Error al leer el archivo JSON');
@@ -861,7 +1002,7 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       reader.readAsText(file);
     });
 
-    // ================= RECONOCIMIENTO DE VOZ Y MICRÓFONO ROBUSTO =================
+    // ================= RECONOCIMIENTO DE VOZ ADAPTABLE Y TOLERANTE =================
     let recognition = null;
     let wakeLock = null;
     let activeMicStream = null;
@@ -882,10 +1023,8 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       }
     }
 
-    // En computadoras de escritorio (Windows/Edge) mantenemos el canal activo para evitar carteles repetitivos.
-    // En móviles (Android / iOS) NUNCA llamamos a getUserMedia aquí porque bloquea el hardware del micrófono.
     async function acquirePersistentMic() {
-      if (isMobile) return; // Exclusión crítica para Android e iOS
+      if (isMobile) return;
       if (activeMicStream) return;
       try {
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
@@ -903,6 +1042,25 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       }
     }
 
+    function updateRecognitionLanguage() {
+      const currentSong = state.setlist[state.currentSongIndex];
+      const targetLang = currentSong?.lang || 'es-ES';
+      
+      const shortCode = targetLang.slice(0, 2).toUpperCase();
+      btnQuickLang.textContent = shortCode;
+      micLangBadge.textContent = shortCode;
+
+      if (recognition) {
+        const needRestart = recognition.lang !== targetLang && state.isPlaying && state.isVoiceMode;
+        recognition.lang = targetLang;
+        if (needRestart) {
+          try {
+            recognition.stop();
+          } catch (e) {}
+        }
+      }
+    }
+
     function initSpeechRecognition() {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognition) {
@@ -914,8 +1072,9 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       recognition = new SpeechRecognition();
       recognition.continuous = true;
       recognition.interimResults = true;
-      // Usar español con dialecto o general
-      recognition.lang = navigator.language && navigator.language.startsWith('es') ? navigator.language : 'es-ES';
+      
+      const currentSong = state.setlist[state.currentSongIndex];
+      recognition.lang = currentSong?.lang || 'es-ES';
       recognition.maxAlternatives = 1;
 
       recognition.onstart = () => {
@@ -940,11 +1099,11 @@ Quédense con nosotros porque comenzamos ahora mismo.`
 
       recognition.onerror = (e) => {
         if (e.error === 'not-allowed') {
-          showToast('Permiso de micrófono denegado. Actívalo en tu navegador.');
+          showToast('Permiso de micrófono denegado en el navegador');
           detectedTranscript.textContent = "Sin permiso mic";
           setVoiceMode(false);
         } else if (e.error === 'audio-capture') {
-          showToast('Error de audio: micrófono ocupado por otra app');
+          showToast('Micrófono ocupado por otra app');
           detectedTranscript.textContent = "Micro ocupado";
         } else if (e.error === 'network') {
           showToast('Error de conexión con el motor de voz');
@@ -971,23 +1130,28 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       };
     }
 
+    // Algoritmo de comparación con tolerancia fonética para canto
     function processVoiceInput(spokenText) {
       if (!state.isPlaying || wordObjects.length === 0) return;
 
+      const currentLang = state.setlist[state.currentSongIndex]?.lang || 'es-ES';
       const spokenWords = spokenText.split(/\s+/).map(cleanWord).filter(w => w.length > 0);
       if (spokenWords.length === 0) return;
 
       const startIndex = state.currentWordIndex;
-      const lookAheadLimit = Math.min(startIndex + 12, wordObjects.length);
+      // Ventana de búsqueda hacia adelante (próximas 14 palabras)
+      const lookAheadLimit = Math.min(startIndex + 14, wordObjects.length);
       let matchedIndex = -1;
 
+      // Priorizar las palabras más recientes que escuchó el micrófono
       for (let s = spokenWords.length - 1; s >= 0; s--) {
         const spoken = spokenWords[s];
         if (spoken.length < 2) continue;
 
         for (let i = startIndex; i < lookAheadLimit; i++) {
           const target = wordObjects[i].clean;
-          if (target === spoken || (spoken.length >= 3 && target.startsWith(spoken)) || (target.length >= 4 && spoken.includes(target))) {
+
+          if (isSongMatch(target, spoken, currentLang)) {
             matchedIndex = i;
             break;
           }
@@ -1004,6 +1168,8 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       await acquirePersistentMic();
       if (!recognition) initSpeechRecognition();
       if (!recognition) return;
+
+      updateRecognitionLanguage();
 
       try {
         recognition.start();
@@ -1043,7 +1209,7 @@ Quédense con nosotros porque comenzamos ahora mismo.`
 
     btnToggleVoice.addEventListener('click', () => setVoiceMode(!state.isVoiceMode));
 
-    // Bucle continuo cuando la voz está desactivada
+    // Bucle continuo para cuando se apaga el micrófono
     function continuousStep() {
       if (!state.isPlaying || state.isVoiceMode) return;
 
@@ -1239,33 +1405,24 @@ Quédense con nosotros porque comenzamos ahora mismo.`
     }
     btnCloseWebcam.addEventListener('click', closeWebcam);
 
-    // ================= PANTALLA COMPLETA / MODO ENFOQUE (SOLUCIÓN IPHONE) =================
+    // Pantalla Completa y Modo Enfoque
     function toggleFullScreen() {
       const doc = document;
       const docEl = document.documentElement;
-
       const isFs = doc.fullscreenElement || doc.webkitFullscreenElement;
 
-      // Si el navegador soporta Fullscreen nativo (PC, Mac, Android, iPad)
       if (docEl.requestFullscreen && !isIOS) {
-        if (!isFs) {
-          docEl.requestFullscreen().catch(() => enableFocusMode());
-        } else {
-          doc.exitFullscreen().catch(() => {});
-        }
+        if (!isFs) docEl.requestFullscreen().catch(() => enableFocusMode());
+        else doc.exitFullscreen().catch(() => {});
       } else if (docEl.webkitRequestFullscreen && !isIOS) {
-        if (!isFs) {
-          docEl.webkitRequestFullscreen();
-        } else {
-          doc.webkitExitFullscreen();
-        }
+        if (!isFs) docEl.webkitRequestFullscreen();
+        else doc.webkitExitFullscreen();
       } else {
-        // iPhone / iOS Safari: Usar Modo Enfoque de pantalla completa limpia
         if (document.body.classList.contains('focus-mode')) {
           disableFocusMode();
         } else {
           enableFocusMode();
-          showToast('Modo Enfoque activo (Ideal para iPhone)');
+          showToast('Modo Enfoque activo');
         }
       }
     }
