@@ -85,13 +85,13 @@
       text-shadow: none;
     }
 
-    /* Transición suave para la Guía Inicial del Cantante */
+    /* Transición suave para la Guía Inicial del Cantante (multilínea adaptable) */
     #singer-notes-banner {
       transition: max-height 0.45s cubic-bezier(0.4, 0, 0.2, 1), 
                   opacity 0.35s ease, 
                   padding 0.35s ease, 
                   border-color 0.35s ease;
-      max-height: 90px;
+      max-height: 320px;
     }
     #singer-notes-banner.banner-collapsed {
       max-height: 0 !important;
@@ -221,18 +221,20 @@
     </div>
   </header>
 
-  <!-- ================= GUÍA / NOTAS INICIALES DEL CANTANTE (Centrado Óptico) ================= -->
-  <div id="singer-notes-banner" class="w-full bg-gradient-to-r from-amber-950/80 via-slate-950/90 to-amber-950/80 backdrop-blur border-b border-amber-500/30 text-amber-200 text-xs px-4 py-2 z-40 relative shadow-md shrink-0 overflow-hidden">
-    <div class="max-w-4xl mx-auto flex items-center justify-center text-center gap-2 px-6 sm:px-14">
-      <span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono font-bold text-[10px] tracking-wider uppercase border border-amber-500/40 shrink-0">
+  <!-- ================= GUÍA / NOTAS INICIALES DEL CANTANTE (Multilínea Adaptable y Centrada) ================= -->
+  <div id="singer-notes-banner" class="w-full bg-gradient-to-r from-amber-950/85 via-slate-950/95 to-amber-950/85 backdrop-blur border-b border-amber-500/30 text-amber-200 text-xs px-3 sm:px-6 py-2 z-40 relative shadow-md shrink-0 overflow-hidden">
+    <!-- Contenedor alineado al ancho de lectura con ajuste flexible de renglones -->
+    <div class="max-w-4xl mx-auto flex flex-wrap items-center justify-center text-center gap-1.5 sm:gap-2 px-2 sm:px-12">
+      <span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono font-bold text-[10px] tracking-wider uppercase border border-amber-500/40 shrink-0 self-center">
         📌 GUÍA
       </span>
-      <span id="singer-notes-text" class="truncate font-medium text-slate-200 text-xs sm:text-[13px] text-center">
+      <span id="singer-notes-text" class="font-medium text-slate-200 text-xs sm:text-[13px] text-center break-words whitespace-normal leading-snug sm:leading-relaxed max-w-full">
         Cargando notas iniciales...
       </span>
     </div>
 
-    <button id="btn-toggle-notes-view" title="Ocultar o desplegar notas" class="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 text-amber-400/80 hover:text-amber-300 text-[11px] underline shrink-0 hidden sm:inline">
+    <!-- Botón discreto a la derecha sin romper el centrado visual -->
+    <button id="btn-toggle-notes-view" title="Ocultar o desplegar notas" class="absolute right-2 sm:right-5 top-2 sm:top-1/2 sm:-translate-y-1/2 text-amber-400/80 hover:text-amber-300 text-[10px] sm:text-[11px] underline shrink-0">
       Ocultar
     </button>
   </div>
@@ -545,7 +547,7 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       fontSize: 42,
       mirrorH: false,
       mirrorV: false,
-      guidePosition: 30, // Posición focal inicial más arriba (30%)
+      guidePosition: 30,
       scrollPos: 0,
       animId: null,
       webcamStream: null,
@@ -625,7 +627,6 @@ Quédense con nosotros porque comenzamos ahora mismo.`
 
     let editingSongId = null;
 
-    // Toast informativo
     function showToast(msg) {
       toast.textContent = msg;
       toast.classList.remove('opacity-0', '-translate-y-2');
@@ -670,11 +671,10 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       else collapseSingerNotes();
     });
 
-    // ================= SISTEMA DE ARRASTRE DIRECTO DE LA LÍNEA GUÍA (DRAG & DROP) =================
+    // ================= SISTEMA DE ARRASTRE DIRECTO DE LA LÍNEA GUÍA =================
     let isDraggingGuide = false;
 
     function updateGuidePosition(newPercent, showIndicator = true) {
-      // Límites ergonómicos entre 15% (muy arriba) y 75% (abajo)
       const clamped = Math.max(15, Math.min(75, Math.round(newPercent)));
       state.guidePosition = clamped;
       guideOverlay.style.top = `${clamped}%`;
@@ -700,7 +700,6 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       dragIndicator.classList.add('opacity-0');
     }
 
-    // Eventos Pointer para arrastrar con mouse o dedo en celular
     const dragHandles = document.querySelectorAll('.guide-drag-handle');
 
     dragHandles.forEach(handle => {
@@ -737,12 +736,11 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       updateGuidePosition(percent, true);
     }
 
-    // Sincronizar también con el deslizador inferior
     guidePosSlider.addEventListener('input', (e) => {
       updateGuidePosition(parseInt(e.target.value), false);
     });
 
-    // ================= ALGORITMO FONÉTICO Y DE SIMILITUD (FUZZY MATCHING) =================
+    // ================= ALGORITMO FONÉTICO Y DE SIMILITUD =================
     function cleanWord(str) {
       if (!str) return "";
       return str.toLowerCase()
@@ -802,7 +800,6 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       return (1 - (dist / maxLen)) >= 0.65;
     }
 
-    // Renderiza el tema actual
     function renderCurrentSong() {
       const song = state.setlist[state.currentSongIndex];
       if (!song) return;
@@ -869,7 +866,6 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       updateRecognitionLanguage();
     }
 
-    // Actualiza colores de palabras y repliega la guía al comenzar a cantar
     function highlightWords(targetIndex) {
       if (wordObjects.length === 0) return;
       state.currentWordIndex = Math.max(0, Math.min(targetIndex, wordObjects.length - 1));
@@ -1149,7 +1145,6 @@ Quédense con nosotros porque comenzamos ahora mismo.`
     btnCloseSetlist.addEventListener('click', closeSetlistManager);
     btnFinishModal.addEventListener('click', closeSetlistManager);
 
-    // Exportar Repertorio (JSON)
     btnExportSetlist.addEventListener('click', () => {
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state.setlist, null, 2));
       const downloadAnchor = document.createElement('a');
@@ -1161,7 +1156,6 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       showToast('Repertorio exportado en archivo .json');
     });
 
-    // Importar Repertorio (JSON)
     inputImportSetlist.addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (!file) return;
@@ -1552,6 +1546,14 @@ Quédense con nosotros porque comenzamos ahora mismo.`
     btnMirrorV.addEventListener('click', () => {
       state.mirrorV = !state.mirrorV;
       updateTransformations();
+    });
+
+    guidePosSlider.addEventListener('input', (e) => {
+      state.guidePosition = parseInt(e.target.value);
+      guideOverlay.style.top = `${state.guidePosition}%`;
+      const topSpacer = document.getElementById('top-spacer');
+      if (topSpacer) topSpacer.style.height = `${state.guidePosition}vh`;
+      highlightWords(state.currentWordIndex);
     });
 
     btnWebcam.addEventListener('click', async () => {
