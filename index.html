@@ -215,18 +215,20 @@
     </div>
   </header>
 
-  <!-- ================= GUÍA / NOTAS INICIALES DEL CANTANTE (Franja Fija Híbrida) ================= -->
-  <div id="singer-notes-banner" class="w-full bg-gradient-to-r from-amber-950/80 via-slate-950/90 to-amber-950/80 backdrop-blur border-b border-amber-500/30 text-amber-200 text-xs px-4 py-2 z-40 flex items-center justify-between gap-3 shadow-md shrink-0 overflow-hidden">
-    <div class="flex items-center gap-2 truncate max-w-full">
+  <!-- ================= GUÍA / NOTAS INICIALES DEL CANTANTE (Centrado Óptico) ================= -->
+  <div id="singer-notes-banner" class="w-full bg-gradient-to-r from-amber-950/80 via-slate-950/90 to-amber-950/80 backdrop-blur border-b border-amber-500/30 text-amber-200 text-xs px-4 py-2 z-40 relative shadow-md shrink-0 overflow-hidden">
+    <!-- Contenedor alineado exactamente al ancho y centrado de la letra -->
+    <div class="max-w-4xl mx-auto flex items-center justify-center text-center gap-2 px-6 sm:px-14">
       <span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono font-bold text-[10px] tracking-wider uppercase border border-amber-500/40 shrink-0">
         📌 GUÍA
       </span>
-      <span id="singer-notes-text" class="truncate font-medium text-slate-200 text-xs sm:text-[13px]">
+      <span id="singer-notes-text" class="truncate font-medium text-slate-200 text-xs sm:text-[13px] text-center">
         Cargando notas iniciales...
       </span>
     </div>
 
-    <button id="btn-toggle-notes-view" title="Ocultar o desplegar notas" class="text-amber-400/80 hover:text-amber-300 text-[11px] underline shrink-0 hidden sm:inline">
+    <!-- Botón discreto a la derecha sin desalinear el centrado de las notas -->
+    <button id="btn-toggle-notes-view" title="Ocultar o desplegar notas" class="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 text-amber-400/80 hover:text-amber-300 text-[11px] underline shrink-0 hidden sm:inline">
       Ocultar
     </button>
   </div>
@@ -444,7 +446,7 @@
     const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     const isAndroid = /Android/i.test(navigator.userAgent);
 
-    // Repertorio inicial con el nuevo campo de notas técnicas de inicio
+    // Repertorio inicial con notas técnicas de inicio
     const INITIAL_SETLIST = [
       {
         id: "song_1",
@@ -605,7 +607,6 @@ Quédense con nosotros porque comenzamos ahora mismo.`
     }
 
     // ================= CONTROL DE LA FRANJA DE NOTAS DEL CANTANTE =================
-    
     function updateSingerNotesUI() {
       const song = state.setlist[state.currentSongIndex];
       const notes = song && song.notes ? song.notes.trim() : "";
@@ -616,7 +617,6 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       }
 
       singerNotesText.textContent = notes;
-      // Al cambiar o cargar tema, la franja se muestra expandida
       expandSingerNotes();
     }
 
@@ -767,7 +767,7 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       updateRecognitionLanguage();
     }
 
-    // Actualiza colores de palabras y aplica la lógica híbrida de la franja de notas
+    // Actualiza colores de palabras y repliega la guía al comenzar a cantar
     function highlightWords(targetIndex) {
       if (wordObjects.length === 0) return;
       state.currentWordIndex = Math.max(0, Math.min(targetIndex, wordObjects.length - 1));
@@ -783,9 +783,7 @@ Quédense con nosotros porque comenzamos ahora mismo.`
         }
       }
 
-      // Comportamiento híbrido solicitado:
-      // Cuando el cantante ya pronunció las primeras palabras (índice > 1), la franja de notas se repliega suavemente.
-      // Si vuelve al inicio (índice 0 o rebobinado), se expande de nuevo.
+      // Al pronunciar las primeras palabras (índice >= 2), se repliega la franja centrada
       if (state.currentWordIndex >= 2 && !state.isNotesCollapsed) {
         collapseSingerNotes();
       } else if (state.currentWordIndex === 0 && state.isNotesCollapsed) {
@@ -1356,7 +1354,6 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       recordingBadge.classList.remove('animate-pulse');
       detectedTranscript.textContent = "Pausado";
 
-      // Si se pausa estando al inicio o rebobinado, asegurar que las notas sean visibles
       if (state.currentWordIndex <= 1) {
         expandSingerNotes();
       }
