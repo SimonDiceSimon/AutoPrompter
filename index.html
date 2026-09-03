@@ -102,6 +102,12 @@
       pointer-events: none;
     }
 
+    /* Guía interactiva deslizable por tacto o ratón */
+    .guide-drag-handle {
+      touch-action: none;
+      cursor: ns-resize;
+    }
+
     /* Modo Enfoque / Pantalla Completa para iPhone */
     body.focus-mode #main-header,
     body.focus-mode #singer-notes-banner,
@@ -217,7 +223,6 @@
 
   <!-- ================= GUÍA / NOTAS INICIALES DEL CANTANTE (Centrado Óptico) ================= -->
   <div id="singer-notes-banner" class="w-full bg-gradient-to-r from-amber-950/80 via-slate-950/90 to-amber-950/80 backdrop-blur border-b border-amber-500/30 text-amber-200 text-xs px-4 py-2 z-40 relative shadow-md shrink-0 overflow-hidden">
-    <!-- Contenedor alineado exactamente al ancho y centrado de la letra -->
     <div class="max-w-4xl mx-auto flex items-center justify-center text-center gap-2 px-6 sm:px-14">
       <span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono font-bold text-[10px] tracking-wider uppercase border border-amber-500/40 shrink-0">
         📌 GUÍA
@@ -227,14 +232,13 @@
       </span>
     </div>
 
-    <!-- Botón discreto a la derecha sin desalinear el centrado de las notas -->
     <button id="btn-toggle-notes-view" title="Ocultar o desplegar notas" class="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 text-amber-400/80 hover:text-amber-300 text-[11px] underline shrink-0 hidden sm:inline">
       Ocultar
     </button>
   </div>
 
   <!-- ================= CUERPO PRINCIPAL / ÁREA DE LECTURA ================= -->
-  <main class="relative flex-1 bg-black overflow-hidden flex flex-col justify-center">
+  <main id="teleprompter-stage" class="relative flex-1 bg-black overflow-hidden flex flex-col justify-center">
 
     <!-- Botón flotante para salir del Modo Enfoque en iPhone -->
     <button id="btn-exit-focus" class="hidden absolute top-4 right-4 z-40 bg-slate-900/90 border border-slate-700 text-slate-200 px-3 py-1.5 rounded-full text-xs font-semibold shadow-xl items-center gap-1.5 backdrop-blur active:scale-95">
@@ -255,19 +259,43 @@
       </div>
     </div>
 
-    <!-- Flechas y Franja Guía Focal Central -->
-    <div id="guide-overlay" class="absolute left-0 right-0 pointer-events-none z-30 flex items-center justify-between px-2 sm:px-8 transition-all duration-75" style="top: 45%;">
-      <div class="flex items-center gap-1.5 sm:gap-2">
+    <!-- Indicador Flotante de Posición al Arrastrar la Línea -->
+    <div id="drag-indicator" class="absolute left-1/2 -translate-x-1/2 z-50 bg-blue-600 text-white text-[11px] font-mono font-bold px-3 py-1 rounded-full shadow-2xl transition-opacity duration-150 opacity-0 pointer-events-none">
+      Línea de lectura: 30%
+    </div>
+
+    <!-- Flechas y Franja Guía Focal Central (Interactiva y Arrastrable con el dedo o mouse) -->
+    <div id="guide-overlay" class="absolute left-0 right-0 z-30 flex items-center justify-between px-1.5 sm:px-8 transition-[top] duration-75" style="top: 30%;">
+      
+      <!-- Agarradera izquierda para arrastrar con el dedo -->
+      <div id="handle-left" class="guide-drag-handle flex items-center gap-1.5 sm:gap-2 p-2 group" title="Arrastra hacia arriba o abajo para mover la línea de lectura">
+        <div class="flex flex-col gap-0.5 opacity-60 group-hover:opacity-100 transition">
+          <span class="w-1 h-1 rounded-full bg-sky-300"></span>
+          <span class="w-1 h-1 rounded-full bg-sky-300"></span>
+          <span class="w-1 h-1 rounded-full bg-sky-300"></span>
+        </div>
         <div class="w-0 h-0 border-y-[12px] sm:border-y-[14px] border-y-transparent border-l-[18px] sm:border-l-[22px] border-l-blue-500 drop-shadow-[0_0_10px_rgba(37,99,235,0.9)]"></div>
-        <div class="hidden sm:block h-[2px] w-12 bg-gradient-to-r from-blue-500 to-transparent"></div>
+        <div class="hidden sm:block h-[2px] w-10 bg-gradient-to-r from-blue-500 to-transparent"></div>
       </div>
 
-      <div class="flex-1 h-20 sm:h-24 bg-blue-600/[0.04] border-y border-blue-500/30 reading-glow rounded"></div>
+      <!-- Franja iluminada con indicador táctil transparente -->
+      <div id="handle-center" class="guide-drag-handle flex-1 h-20 sm:h-24 bg-blue-600/[0.05] hover:bg-blue-600/[0.08] border-y border-blue-500/30 reading-glow rounded transition flex items-center justify-center group" title="Arrastra hacia arriba o abajo para mover la línea de lectura">
+        <span class="text-[10px] font-mono tracking-widest text-sky-400/40 group-hover:text-sky-300/80 transition uppercase select-none">
+          ↕ Arrastrar posición
+        </span>
+      </div>
 
-      <div class="flex items-center gap-1.5 sm:gap-2">
-        <div class="hidden sm:block h-[2px] w-12 bg-gradient-to-l from-blue-500 to-transparent"></div>
+      <!-- Agarradera derecha para arrastrar con el dedo -->
+      <div id="handle-right" class="guide-drag-handle flex items-center gap-1.5 sm:gap-2 p-2 group" title="Arrastra hacia arriba o abajo para mover la línea de lectura">
+        <div class="hidden sm:block h-[2px] w-10 bg-gradient-to-l from-blue-500 to-transparent"></div>
         <div class="w-0 h-0 border-y-[12px] sm:border-y-[14px] border-y-transparent border-r-[18px] sm:border-r-[22px] border-r-blue-500 drop-shadow-[0_0_10px_rgba(37,99,235,0.9)]"></div>
+        <div class="flex flex-col gap-0.5 opacity-60 group-hover:opacity-100 transition">
+          <span class="w-1 h-1 rounded-full bg-sky-300"></span>
+          <span class="w-1 h-1 rounded-full bg-sky-300"></span>
+          <span class="w-1 h-1 rounded-full bg-sky-300"></span>
+        </div>
       </div>
+
     </div>
 
     <!-- Contenedor con Scroll de Texto -->
@@ -314,10 +342,10 @@
 
       <div class="hidden sm:block w-1 h-3 bg-slate-800"></div>
 
-      <!-- Posición de la guía focal -->
+      <!-- Posición de la guía focal (sincronizada con el arrastre directo) -->
       <div class="flex items-center gap-1 sm:gap-1.5">
         <span class="text-slate-500">Guía:</span>
-        <input type="range" id="guide-pos-slider" min="20" max="75" value="45" class="w-12 sm:w-14 accent-blue-500 h-1 cursor-pointer">
+        <input type="range" id="guide-pos-slider" min="15" max="75" value="30" class="w-12 sm:w-14 accent-blue-500 h-1 cursor-pointer" title="Ajustar altura de la guía de lectura">
       </div>
     </div>
 
@@ -506,7 +534,7 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       }
     ];
 
-    // Estado central de la aplicación
+    // Estado central de la aplicación (Línea de lectura iniciada en 30% más arriba)
     const state = {
       setlist: [...INITIAL_SETLIST],
       currentSongIndex: 0,
@@ -517,7 +545,7 @@ Quédense con nosotros porque comenzamos ahora mismo.`
       fontSize: 42,
       mirrorH: false,
       mirrorV: false,
-      guidePosition: 45,
+      guidePosition: 30, // Posición focal inicial más arriba (30%)
       scrollPos: 0,
       animId: null,
       webcamStream: null,
@@ -529,6 +557,7 @@ Quédense con nosotros porque comenzamos ahora mismo.`
     let wordObjects = [];
 
     // Referencias al DOM
+    const stageElement = document.getElementById('teleprompter-stage');
     const scrollWrapper = document.getElementById('scroll-wrapper');
     const teleprompterContent = document.getElementById('teleprompter-content');
     const btnTogglePlay = document.getElementById('btn-toggle-play');
@@ -561,6 +590,7 @@ Quédense con nosotros porque comenzamos ahora mismo.`
     const progressBar = document.getElementById('progress-bar');
     const guideOverlay = document.getElementById('guide-overlay');
     const guidePosSlider = document.getElementById('guide-pos-slider');
+    const dragIndicator = document.getElementById('drag-indicator');
     const countdownModal = document.getElementById('countdown-modal');
     const countdownNumber = document.getElementById('countdown-number');
     const autocueBanner = document.getElementById('autocue-banner');
@@ -638,6 +668,78 @@ Quédense con nosotros porque comenzamos ahora mismo.`
     btnToggleNotesView.addEventListener('click', () => {
       if (state.isNotesCollapsed) expandSingerNotes();
       else collapseSingerNotes();
+    });
+
+    // ================= SISTEMA DE ARRASTRE DIRECTO DE LA LÍNEA GUÍA (DRAG & DROP) =================
+    let isDraggingGuide = false;
+
+    function updateGuidePosition(newPercent, showIndicator = true) {
+      // Límites ergonómicos entre 15% (muy arriba) y 75% (abajo)
+      const clamped = Math.max(15, Math.min(75, Math.round(newPercent)));
+      state.guidePosition = clamped;
+      guideOverlay.style.top = `${clamped}%`;
+      guidePosSlider.value = clamped;
+
+      const topSpacer = document.getElementById('top-spacer');
+      if (topSpacer) {
+        topSpacer.style.height = `${clamped}vh`;
+      }
+
+      if (showIndicator) {
+        dragIndicator.textContent = `Línea de lectura: ${clamped}%`;
+        dragIndicator.style.top = `calc(${clamped}% - 34px)`;
+        dragIndicator.classList.remove('opacity-0');
+        dragIndicator.classList.add('opacity-100');
+      }
+
+      highlightWords(state.currentWordIndex);
+    }
+
+    function hideDragIndicator() {
+      dragIndicator.classList.remove('opacity-100');
+      dragIndicator.classList.add('opacity-0');
+    }
+
+    // Eventos Pointer para arrastrar con mouse o dedo en celular
+    const dragHandles = document.querySelectorAll('.guide-drag-handle');
+
+    dragHandles.forEach(handle => {
+      handle.addEventListener('pointerdown', (e) => {
+        isDraggingGuide = true;
+        handle.setPointerCapture(e.pointerId);
+        updateGuidePositionFromPointer(e.clientY);
+      });
+
+      handle.addEventListener('pointermove', (e) => {
+        if (!isDraggingGuide) return;
+        updateGuidePositionFromPointer(e.clientY);
+      });
+
+      handle.addEventListener('pointerup', (e) => {
+        if (isDraggingGuide) {
+          isDraggingGuide = false;
+          try { handle.releasePointerCapture(e.pointerId); } catch(err){}
+          setTimeout(hideDragIndicator, 600);
+          showToast(`Línea ajustada al ${state.guidePosition}%`);
+        }
+      });
+
+      handle.addEventListener('pointercancel', (e) => {
+        isDraggingGuide = false;
+        hideDragIndicator();
+      });
+    });
+
+    function updateGuidePositionFromPointer(clientY) {
+      const rect = stageElement.getBoundingClientRect();
+      const relativeY = clientY - rect.top;
+      const percent = (relativeY / rect.height) * 100;
+      updateGuidePosition(percent, true);
+    }
+
+    // Sincronizar también con el deslizador inferior
+    guidePosSlider.addEventListener('input', (e) => {
+      updateGuidePosition(parseInt(e.target.value), false);
     });
 
     // ================= ALGORITMO FONÉTICO Y DE SIMILITUD (FUZZY MATCHING) =================
@@ -783,7 +885,6 @@ Quédense con nosotros porque comenzamos ahora mismo.`
         }
       }
 
-      // Al pronunciar las primeras palabras (índice >= 2), se repliega la franja centrada
       if (state.currentWordIndex >= 2 && !state.isNotesCollapsed) {
         collapseSingerNotes();
       } else if (state.currentWordIndex === 0 && state.isNotesCollapsed) {
@@ -1451,14 +1552,6 @@ Quédense con nosotros porque comenzamos ahora mismo.`
     btnMirrorV.addEventListener('click', () => {
       state.mirrorV = !state.mirrorV;
       updateTransformations();
-    });
-
-    guidePosSlider.addEventListener('input', (e) => {
-      state.guidePosition = parseInt(e.target.value);
-      guideOverlay.style.top = `${state.guidePosition}%`;
-      const topSpacer = document.getElementById('top-spacer');
-      if (topSpacer) topSpacer.style.height = `${state.guidePosition}vh`;
-      highlightWords(state.currentWordIndex);
     });
 
     btnWebcam.addEventListener('click', async () => {
